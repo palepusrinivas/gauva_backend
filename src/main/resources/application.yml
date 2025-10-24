@@ -1,0 +1,44 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    # url: jdbc:mysql://localhost:3306/ride_fast_db?createDatabaseIfNotExist=true
+    # username: root
+    # password: mysql
+    url: jdbc:postgresql://localhost:5432/guava_dev_db
+    username: postgres
+    password: root
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    
+    show-sql: true
+    properties:
+      format_sql: true
+
+app:
+  cors:
+    allowed-origins: "*"
+  razorpay:
+    key-id: rzp_test_RVmSxTBdwWng9o
+    key-secret: L0Q7LVHqXj1seMQut0D87m5S
+    webhook-secret: tY@r77M@dDdmc3N
+  wallet:
+    commission-rate: 0.10
+  logging:
+    log-path: logs
+    upload-enabled: false
+    s3-bucket: dummy-bucket
+    s3-prefix: dev/logs/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
