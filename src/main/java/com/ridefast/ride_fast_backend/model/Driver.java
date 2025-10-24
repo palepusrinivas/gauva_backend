@@ -29,6 +29,9 @@ public class Driver {
     private Double longitude;
     private UserRole role;
 
+    @Column(name = "short_code", unique = true, length = 4)
+    private String shortCode;
+
     private String password;
     @OneToOne(mappedBy = "driver", cascade = CascadeType.ALL)
     private License license;

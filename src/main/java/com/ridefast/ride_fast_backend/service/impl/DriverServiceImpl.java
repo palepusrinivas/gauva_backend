@@ -20,6 +20,7 @@ import com.ridefast.ride_fast_backend.repository.LicenseRepository;
 import com.ridefast.ride_fast_backend.repository.VehicleRepository;
 import com.ridefast.ride_fast_backend.service.CalculatorService;
 import com.ridefast.ride_fast_backend.service.DriverService;
+import com.ridefast.ride_fast_backend.service.ShortCodeService;
 import com.ridefast.ride_fast_backend.util.JwtTokenHelper;
 
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class DriverServiceImpl implements DriverService {
 
   private final PasswordEncoder passwordEncoder;
   private final ModelMapper modelMapper;
+  private final ShortCodeService shortCodeService;
 
   @Override
   public Driver registerDriver(DriverSignUpRequest request) {
@@ -50,6 +52,9 @@ public class DriverServiceImpl implements DriverService {
     driver.setLicense(savedLicense);
     driver.setVehicle(savedVehicle);
     driver.setRole(UserRole.DRIVER);
+    if (driver.getShortCode() == null || driver.getShortCode().isBlank()) {
+      driver.setShortCode(shortCodeService.generateDriverCode());
+    }
     Driver savedDriver = driverRepository.save(driver);
     savedLicense.setDriver(savedDriver);
     savedVehicle.setDriver(savedDriver);

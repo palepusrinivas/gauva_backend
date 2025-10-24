@@ -13,6 +13,8 @@ import org.springframework.data.repository.query.Param;
 public interface UserRepository extends JpaRepository<MyUser, String> {
     public Optional<MyUser> findByEmail(String email);
 
+    boolean existsByShortCode(String shortCode);
+
     @Query("select r from Ride r where r.status=COMPLETED and r.user.id=:userId")
     public List<Ride> getCompletedRides(
             @Param("userId") String userId);

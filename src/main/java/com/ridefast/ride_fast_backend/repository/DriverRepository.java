@@ -13,6 +13,8 @@ import com.ridefast.ride_fast_backend.model.Ride;
 public interface DriverRepository extends JpaRepository<Driver, Long> {
   public Optional<Driver> findByEmail(String email);
 
+  boolean existsByShortCode(String shortCode);
+
   @Query("select r from Ride r where r.status=REQUESTED and r.driver.id=:driverId")
   public List<Ride> getAllocatedRides(@Param("driverId") Long driverId);
 

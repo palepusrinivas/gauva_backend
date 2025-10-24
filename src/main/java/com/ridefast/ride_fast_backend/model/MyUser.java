@@ -20,6 +20,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -82,9 +84,11 @@ public class MyUser {
     private Boolean isTempBlocked;
 
     @Column(name = "created_at")
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 
     @Column(name = "deleted_at")
@@ -125,6 +129,9 @@ public class MyUser {
 
     @Column(name = "current_language_key")
     private String currentLanguageKey;
+
+    @Column(name = "short_code", unique = true, length = 4)
+    private String shortCode;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role")

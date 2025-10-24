@@ -25,6 +25,7 @@ import com.ridefast.ride_fast_backend.service.RideService;
 import com.ridefast.ride_fast_backend.service.UserService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/v1/ride")
@@ -36,6 +37,7 @@ public class RideController {
   private final ModelMapper modelMapper;
 
   @PostMapping("/request")
+  @PreAuthorize("hasRole('USER')")
   public ResponseEntity<RideDto> userRideRequestHandler(@RequestBody RideRequest request,
       @RequestHeader("Authorization") String jwtToken) throws ResourceNotFoundException, UserException {
     MyUser user = userService.getRequestedUserProfile(jwtToken);
@@ -45,6 +47,7 @@ public class RideController {
   }
 
   @PostMapping("/{rideId}/accept")
+  @PreAuthorize("hasRole('DRIVER')")
   public ResponseEntity<RideDto> acceptRideRequestHandler(@PathVariable Long rideId)
       throws ResourceNotFoundException {
     Ride ride = rideService.acceptRide(rideId);
@@ -53,6 +56,7 @@ public class RideController {
   }
 
   @PostMapping("/{rideId}/decline")
+  @PreAuthorize("hasRole('DRIVER')")
   public ResponseEntity<RideDto> declineRideHandler(@RequestHeader("Authorization") String jwtToken,
       @PathVariable Long rideId) throws ResourceNotFoundException {
     Driver driver = driverService.getRequestedDriverProfile(jwtToken);
@@ -62,6 +66,7 @@ public class RideController {
   }
 
   @PostMapping("/{rideId}/start")
+  @PreAuthorize("hasRole('DRIVER')")
   public ResponseEntity<RideDto> rideStartHandler(
       @PathVariable Long rideId, @RequestBody StartRideRequest req) throws ResourceNotFoundException, UserException {
     Ride ride = rideService.startRide(rideId, req.getOtp());
@@ -70,6 +75,7 @@ public class RideController {
   }
 
   @PostMapping("/{rideId}/complete")
+  @PreAuthorize("hasRole('DRIVER')")
   public ResponseEntity<RideDto> rideCompleteHandler(
       @PathVariable Long rideId) throws ResourceNotFoundException {
     Ride ride = rideService.completeRide(rideId);

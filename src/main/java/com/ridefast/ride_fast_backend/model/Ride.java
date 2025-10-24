@@ -22,6 +22,9 @@ public class Ride {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "short_code", unique = true, length = 4)
+    private String shortCode;
+
     @ManyToOne(cascade = CascadeType.ALL)
     private MyUser user;
 

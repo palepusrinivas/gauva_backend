@@ -27,6 +27,7 @@ import com.ridefast.ride_fast_backend.service.AuthService;
 import com.ridefast.ride_fast_backend.service.CustomUserDetailsService;
 import com.ridefast.ride_fast_backend.service.DriverService;
 import com.ridefast.ride_fast_backend.service.RefreshTokenService;
+import com.ridefast.ride_fast_backend.service.ShortCodeService;
 import com.ridefast.ride_fast_backend.util.JwtTokenHelper;
 
 import lombok.RequiredArgsConstructor;
@@ -45,6 +46,7 @@ public class AuthServiceImpl implements AuthService {
   private final DriverService driverService;
   private final PasswordEncoder passwordEncoder;
   private final ModelMapper modelMapper;
+  private final ShortCodeService shortCodeService;
 
   @Override
   public UserResponse signUpUser(SignUpRequest request) throws UserException {
@@ -58,6 +60,9 @@ public class AuthServiceImpl implements AuthService {
     MyUser createdUser = modelMapper.map(request, MyUser.class);
     createdUser.setPassword(encodedPassword);
     createdUser.setRole(UserRole.NORMAL_USER);
+    if (createdUser.getShortCode() == null || createdUser.getShortCode().isBlank()) {
+      createdUser.setShortCode(shortCodeService.generateUserCode());
+    }
     // Default language to satisfy NOT NULL constraint
     if (createdUser.getCurrentLanguageKey() == null || createdUser.getCurrentLanguageKey().isBlank()) {
       createdUser.setCurrentLanguageKey("en");

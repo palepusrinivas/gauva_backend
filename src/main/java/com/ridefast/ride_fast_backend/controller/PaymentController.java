@@ -22,6 +22,7 @@ import com.ridefast.ride_fast_backend.repository.RideRepository;
 import com.ridefast.ride_fast_backend.service.RideService;
 import com.ridefast.ride_fast_backend.service.UserService;
 import com.ridefast.ride_fast_backend.service.WalletService;
+import com.ridefast.ride_fast_backend.service.notification.PushNotificationService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -43,6 +44,7 @@ public class PaymentController {
   private final RideService rideService;
   private final RideRepository rideRepository;
   private final WalletService walletService;
+  private final PushNotificationService pushNotificationService;
 
   @Value("${app.razorpay.key-id}")
   private String razorpayKeyId;
@@ -209,6 +211,13 @@ public class PaymentController {
           double net = fare - commission;
           walletService.credit(WalletOwnerType.DRIVER, ride.getDriver().getId().toString(),
               java.math.BigDecimal.valueOf(net), "RIDE", ride.getId().toString(), "Ride fare credit");
+        }
+
+        if (ride.getUser() != null && ride.getUser().getFcmToken() != null && !ride.getUser().getFcmToken().isBlank()) {
+          java.util.Map<String, String> data = new java.util.HashMap<>();
+          data.put("ride_id", String.valueOf(ride.getId()));
+          data.put("event", "payment_success");
+          pushNotificationService.sendToToken(ride.getUser().getFcmToken(), "Payment received", "Your ride payment was successful", data);
         }
       }
 

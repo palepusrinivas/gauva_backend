@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Random;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -21,4 +23,12 @@ public class DriverSignUpRequest {
   private double longitude;
   private License license;
   private Vehicle vehicle;
+  private String driverId;
+
+    public void setDriverId() {
+        Random rd = new Random();
+        int number = 1000000000 + rd.nextInt(1000000000); // ensures 10-digit number
+        this.driverId = String.valueOf(number);
+    }
+
 }

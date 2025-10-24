@@ -19,6 +19,7 @@ import com.ridefast.ride_fast_backend.repository.RideRepository;
 import com.ridefast.ride_fast_backend.service.CalculatorService;
 import com.ridefast.ride_fast_backend.service.DriverService;
 import com.ridefast.ride_fast_backend.service.RideService;
+import com.ridefast.ride_fast_backend.service.ShortCodeService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,6 +31,7 @@ public class RideServiceImpl implements RideService {
   private final RideRepository rideRepository;
   private final CalculatorService calculatorService;
   private final DriverRepository driverRepository;
+  private final ShortCodeService shortCodeService;
 
   @Override
   public Ride requestRide(RideRequest request, MyUser user) throws UserException {
@@ -69,6 +71,10 @@ public class RideServiceImpl implements RideService {
         .pickupArea(pickupArea)
         .destinationArea(destinationArea)
         .build();
+
+    if (ride.getShortCode() == null || ride.getShortCode().isBlank()) {
+      ride.setShortCode(shortCodeService.generateRideCode());
+    }
 
     return rideRepository.save(ride);
   }

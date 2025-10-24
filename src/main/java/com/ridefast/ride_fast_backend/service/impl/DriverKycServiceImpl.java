@@ -12,6 +12,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
@@ -20,12 +21,13 @@ public class DriverKycServiceImpl implements DriverKycService {
   private final DriverRepository driverRepository;
   private final DriverKycRepository kycRepository;
 
-  private static final String ENV_PREFIX = "dev"; // dummy, replace from config later
+  @Value("${app.storage.kyc-prefix:drivers}")
+  private String kycRootPrefix;
 
   @Override
   public Map<String, String> generateUploadKeys(Long driverId) {
-    // Only generate object keys. Client will upload using future presigned URLs service.
-    String base = ENV_PREFIX + "/drivers/" + driverId + "/kyc/";
+    // Only generate object keys (object names under Firebase 'documents' base path).
+    String base = kycRootPrefix + "/" + driverId + "/kyc/";
     Map<String, String> keys = new HashMap<>();
     keys.put("photoKey", base + "photo.jpg");
     keys.put("aadhaarFrontKey", base + "aadhaar_front.jpg");
@@ -54,7 +56,7 @@ public class DriverKycServiceImpl implements DriverKycService {
       throw new IllegalArgumentException("Invalid RC number");
     }
 
-    String base = ENV_PREFIX + "/drivers/" + driverId + "/kyc/";
+    String base = kycRootPrefix + "/" + driverId + "/kyc/";
     for (String v : fileKeys.values()) {
       if (v == null || !v.startsWith(base)) {
         throw new IllegalArgumentException("File key outside allowed path: " + v);
