@@ -13,6 +13,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Column;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 
 import lombok.AllArgsConstructor;
@@ -122,14 +123,23 @@ public class MyUser {
     @Column(name = "current_language_key")
     private String currentLanguageKey;
 
-    private UserRole role;
     @Enumerated(EnumType.STRING)
+    @Column(name = "role")
+    private UserRole role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider")
     private AuthProvider authProvider;
+
+    @Column(name = "provider_user_id")
     private String providerUserId;
+
+    @Column(name = "firebase_uid")
     private String firebaseUid;
 
     @JsonIgnore
     @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "current_ride_id")
     private Ride currentRide;
 
     @OneToOne(mappedBy = "user")

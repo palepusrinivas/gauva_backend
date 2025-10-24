@@ -3,12 +3,10 @@ server:
 
 spring:
   datasource:
-    # url: jdbc:mysql://localhost:3306/ride_fast_db?createDatabaseIfNotExist=true
-    # username: root
-    # password: mysql
-    url: jdbc:postgresql://localhost:5432/guava_dev_db
-    username: postgres
-    password: root
+    url: jdbc:mysql://178.212.35.218:3306/dev_gauva_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: gauva_gauva
+    password: 442200@Com
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
@@ -17,6 +15,30 @@ spring:
     show-sql: true
     properties:
       format_sql: true
+      hibernate.dialect: org.hibernate.dialect.MySQLDialect
+  flyway:
+    enabled: false
+    baseline-on-migrate: true
+    baseline-version: 0
+  mail:
+    host: ${APP_MAIL_HOST:localhost}
+    port: ${APP_MAIL_PORT:1025}
+    username: ${APP_MAIL_USERNAME:}
+    password: ${APP_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${APP_MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${APP_MAIL_STARTTLS:false}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL:false}
 
 app:
   cors:
@@ -32,6 +54,16 @@ app:
     upload-enabled: false
     s3-bucket: dummy-bucket
     s3-prefix: dev/logs/
+
+  notify:
+    email:
+      from: ${APP_MAIL_FROM:no-reply@example.com}
+    sms:
+      provider: ${APP_SMS_PROVIDER:dummy}
+      api-key: ${APP_SMS_API_KEY:}
+      sender-id: ${APP_SMS_SENDER:RIDFST}
+    fcm:
+      server-key: ${APP_FCM_SERVER_KEY:}
 
 management:
   endpoints:

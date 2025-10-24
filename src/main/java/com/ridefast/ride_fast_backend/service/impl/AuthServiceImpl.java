@@ -57,6 +57,10 @@ public class AuthServiceImpl implements AuthService {
     MyUser createdUser = modelMapper.map(request, MyUser.class);
     createdUser.setPassword(encodedPassword);
     createdUser.setRole(UserRole.NORMAL_USER);
+    // Default language to satisfy NOT NULL constraint
+    if (createdUser.getCurrentLanguageKey() == null || createdUser.getCurrentLanguageKey().isBlank()) {
+      createdUser.setCurrentLanguageKey("en");
+    }
 
     MyUser savedUser = userRepository.save(createdUser);
 
