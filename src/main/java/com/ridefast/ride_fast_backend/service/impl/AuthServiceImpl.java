@@ -30,6 +30,7 @@ import com.ridefast.ride_fast_backend.service.RefreshTokenService;
 import com.ridefast.ride_fast_backend.util.JwtTokenHelper;
 
 import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +61,21 @@ public class AuthServiceImpl implements AuthService {
     // Default language to satisfy NOT NULL constraint
     if (createdUser.getCurrentLanguageKey() == null || createdUser.getCurrentLanguageKey().isBlank()) {
       createdUser.setCurrentLanguageKey("en");
+    }
+    if (createdUser.getFailedAttempt() == null) {
+      createdUser.setFailedAttempt(0);
+    }
+    if (createdUser.getIsActive() == null) {
+      createdUser.setIsActive(true);
+    }
+    if (createdUser.getIsTempBlocked() == null) {
+      createdUser.setIsTempBlocked(false);
+    }
+    if (createdUser.getLoyaltyPoints() == null) {
+      createdUser.setLoyaltyPoints(0.0);
+    }
+    if (createdUser.getCreatedAt() == null) {
+      createdUser.setCreatedAt(LocalDateTime.now());
     }
 
     MyUser savedUser = userRepository.save(createdUser);

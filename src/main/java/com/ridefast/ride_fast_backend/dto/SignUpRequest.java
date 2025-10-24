@@ -1,5 +1,6 @@
 package com.ridefast.ride_fast_backend.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
@@ -24,7 +25,11 @@ public class SignUpRequest {
   @NotEmpty(message = "password is required")
   private String password;
 
-  @NotEmpty(message = "mobile is required")
-  @Size(min = 10, message = "Invalid mobile number")
-  private String mobile;
+  @NotEmpty(message = "phone is required")
+  @Size(min = 10, message = "Invalid phone number")
+  @JsonAlias({"mobile"})
+  private String phone;
+
+//  @JsonAlias({"language", "lang"})
+//  private String currentLanguageKey;
 }

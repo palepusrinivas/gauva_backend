@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users")
+@Table(name = "MyUser")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -73,9 +73,9 @@ public class MyUser {
     private Boolean isActive;
 
     @Column(name = "loyalty_points")
-    private Integer loyaltyPoints;
+    private Double loyaltyPoints;
 
-    @Column(name = "failed_attempt")
+    @Column(name = "failed_attempts")
     private Integer failedAttempt;
 
     @Column(name = "is_temp_blocked")
@@ -113,6 +113,9 @@ public class MyUser {
 
     @Column(name = "ref_code")
     private String refCode;
+
+    @Column(name = "ref_by")
+    private String refBy;
 
     @Column(name = "user_type")
     private String userType;
