@@ -22,10 +22,10 @@ public class FirebaseStorageServiceImpl implements StorageService {
   @Value("${app.firebase.storage-bucket:}")
   private String defaultBucket;
 
-  @Value("${app.firebase.documents-gs-path:gs://gauva-15d9a.firebasestorage.app/documents}")
+  @Value("${app.firebase.documents-gs-path:gs://gauva-15d9a.appspot.com/documents}")
   private String documentsGsPath;
 
-  @Value("${app.firebase.logs-gs-path:gs://gauva-15d9a.firebasestorage.app/app_logs}")
+  @Value("${app.firebase.logs-gs-path:gs://gauva-15d9a.appspot.com/app_logs}")
   private String logsGsPath;
 
   private record GsInfo(String bucket, String prefix) {}
@@ -62,12 +62,16 @@ public class FirebaseStorageServiceImpl implements StorageService {
     String objectPath = info.prefix() + objectName;
 
     try {
+      if (bucketName == null || bucketName.isBlank()) {
+        log.error("Firebase bucket name is not configured. Set app.firebase.storage-bucket or use valid gs path.");
+        throw new RuntimeException("Upload failed");
+      }
       Bucket bucket = StorageClient.getInstance().bucket(bucketName);
       Blob blob = bucket.create(objectPath, data, contentType);
       String gs = String.format("gs://%s/%s", bucketName, objectPath);
       return gs;
     } catch (Exception e) {
-      log.error("Failed to upload to Firebase Storage: {}", e.getMessage());
+      log.error("Failed to upload to Firebase Storage [bucket={}, object={}]: {}", bucketName, objectPath, e.toString());
       throw new RuntimeException("Upload failed");
     }
   }
@@ -94,7 +98,7 @@ public class FirebaseStorageServiceImpl implements StorageService {
       Blob existing = bucket.get(objectPath);
       return existing != null && existing.delete();
     } catch (Exception e) {
-      log.error("Failed to delete from Firebase Storage: {}", e.getMessage());
+      log.error("Failed to delete from Firebase Storage: {}", e.toString());
       return false;
     }
   }

@@ -24,6 +24,10 @@ public class Vehicle {
     private Integer year;
     private String licensePlate;
     private Integer capacity;
+    private Integer seatCapacity;
+    private Integer hatchBag;
+    private String fuelType;
+    private String vehicleId;
 
     @JsonIgnore
     @OneToOne(cascade = CascadeType.ALL)
