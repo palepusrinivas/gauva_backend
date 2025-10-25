@@ -76,6 +76,9 @@ app:
     fcm:
       server-key: ${APP_FCM_SERVER_KEY:}
 
+  admin:
+    seed-json-path: src/test/resources/superadmin.json
+
 management:
   endpoints:
     web:

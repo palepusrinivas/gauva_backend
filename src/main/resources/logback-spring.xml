@@ -11,18 +11,20 @@
   </appender>
 
   <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>${LOG_PATH}/application.log</file>
-    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>${LOG_PATH}/application-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-      <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-        <maxFileSize>20MB</maxFileSize>
-      </timeBasedFileNamingAndTriggeringPolicy>
+    <file>${LOG_PATH}/app.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <!-- Daily rollover, multiple files per day if size exceeds limit -->
+      <fileNamePattern>${LOG_PATH}/app-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <!-- Keep per-file size aligned with Firebase log upload limit (default 5MB) -->
+      <maxFileSize>5MB</maxFileSize>
       <maxHistory>14</maxHistory>
       <totalSizeCap>2GB</totalSizeCap>
+      <cleanHistoryOnStart>true</cleanHistoryOnStart>
     </rollingPolicy>
     <encoder>
       <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
     </encoder>
+    <append>true</append>
   </appender>
 
   <logger name="com.ridefast" level="DEBUG" additivity="false">
