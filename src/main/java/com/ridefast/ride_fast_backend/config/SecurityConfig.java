@@ -41,7 +41,8 @@ public class SecurityConfig {
     private static final String[] permits ={
             "/api/v1/auth/**",
             "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**", "/home",
-            "/actuator/health", "/actuator/info"
+            "/actuator/health", "/actuator/info",
+            "/api/v1/admin/login"
 
 
 
