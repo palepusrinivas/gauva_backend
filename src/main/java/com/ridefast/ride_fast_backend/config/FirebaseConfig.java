@@ -23,6 +23,10 @@ public class FirebaseConfig {
   @Value("${app.firebase.storage-bucket:}")
   private String storageBucket;
 
+
+
+
+
   // Prefer base64 credentials content. Fallback to file path. If both empty, rely on ADC.
   @Value("${app.firebase.credentials-b64:}")
   private String credentialsB64;
