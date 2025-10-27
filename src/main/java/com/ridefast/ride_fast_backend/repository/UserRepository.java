@@ -24,4 +24,10 @@ public interface UserRepository extends JpaRepository<MyUser, String> {
 
     @Query("select r from Ride r where r.status=REQUESTED and r.user.id=:userId")
     public List<Ride> getRequestedRides(@Param("userId") String userId);
+
+    // New lookups for phone-based auth
+    Optional<MyUser> findByPhone(String phone);
+
+    @Query("select u from MyUser u where u.email = :identifier or u.phone = :identifier")
+    Optional<MyUser> findByEmailOrPhone(@Param("identifier") String identifier);
 }

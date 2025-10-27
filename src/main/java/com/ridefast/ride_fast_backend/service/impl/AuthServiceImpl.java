@@ -14,6 +14,7 @@ import com.ridefast.ride_fast_backend.dto.DriverResponse;
 import com.ridefast.ride_fast_backend.dto.DriverSignUpRequest;
 import com.ridefast.ride_fast_backend.dto.JwtResponse;
 import com.ridefast.ride_fast_backend.dto.LoginRequest;
+import com.ridefast.ride_fast_backend.dto.OtpLoginRequest;
 import com.ridefast.ride_fast_backend.dto.SignUpRequest;
 import com.ridefast.ride_fast_backend.dto.UserResponse;
 import com.ridefast.ride_fast_backend.enums.UserRole;
@@ -30,6 +31,9 @@ import com.ridefast.ride_fast_backend.service.RefreshTokenService;
 import com.ridefast.ride_fast_backend.service.ShortCodeService;
 import com.ridefast.ride_fast_backend.util.JwtTokenHelper;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseToken;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import java.time.LocalDateTime;
 
@@ -51,9 +55,12 @@ public class AuthServiceImpl implements AuthService {
   @Override
   public UserResponse signUpUser(SignUpRequest request) throws UserException {
 
-    boolean userPresent = userRepository.findByEmail(request.getEmail()).isPresent();
-    if (userPresent)
-      throw new UserException("User Already Exists with this email");
+    if (request.getEmail() != null && !request.getEmail().isBlank()) {
+      boolean emailPresent = userRepository.findByEmail(request.getEmail()).isPresent();
+      if (emailPresent) throw new UserException("User already exists with this email");
+    }
+    boolean phonePresent = userRepository.findByPhone(request.getPhone()).isPresent();
+    if (phonePresent) throw new UserException("User already exists with this phone");
 
     String encodedPassword = passwordEncoder.encode(request.getPassword());
 
@@ -92,10 +99,10 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   public JwtResponse loginUser(LoginRequest request) throws ResourceNotFoundException {
-    Authentication authentication = authenticate(request.getEmail(), request.getPassword());
+    Authentication authentication = authenticate(request.getIdentifier(), request.getPassword());
     SecurityContextHolder.getContext().setAuthentication(authentication);
 
-    UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
+    UserDetails userDetails = userDetailsService.loadUserByUsername(request.getIdentifier());
 
     RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getUsername(), request.getRole());
 
@@ -118,6 +125,53 @@ public class AuthServiceImpl implements AuthService {
       return authentication;
     } catch (BadCredentialsException e) {
       throw new BadCredentialsException("invalid username or password");
+    }
+  }
+
+  @Override
+  public JwtResponse loginUserWithOtp(OtpLoginRequest request) throws ResourceNotFoundException {
+    try {
+      FirebaseToken decoded = FirebaseAuth.getInstance().verifyIdToken(request.getIdToken());
+      String firebaseUid = decoded.getUid();
+      String phone = null;
+      Object claimPhone = decoded.getClaims().get("phone_number");
+      if (claimPhone instanceof String cp && !cp.isBlank()) {
+        phone = cp;
+      } else {
+        // Fallback to user lookup
+        String fetched = FirebaseAuth.getInstance().getUser(firebaseUid).getPhoneNumber();
+        if (fetched != null && !fetched.isBlank()) {
+          phone = fetched;
+        }
+      }
+      if (phone == null || phone.isBlank()) {
+        throw new ResourceNotFoundException("FirebaseToken", "phone", "missing");
+      }
+      Optional<MyUser> optional = userRepository.findByPhone(phone);
+      if (optional.isEmpty()) {
+        throw new ResourceNotFoundException("User", "phone", phone);
+      }
+      MyUser user = optional.get();
+      if (user.getFirebaseUid() == null || user.getFirebaseUid().isBlank()) {
+        user.setFirebaseUid(firebaseUid);
+      }
+      if (user.getPhoneVerifiedAt() == null) {
+        user.setPhoneVerifiedAt(LocalDateTime.now());
+      }
+      userRepository.save(user);
+
+      String principal = (user.getEmail() != null && !user.getEmail().isBlank()) ? user.getEmail() : user.getPhone();
+      UserDetails userDetails = userDetailsService.loadUserByUsername(principal);
+      RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getUsername(), request.getRole());
+      String jwtToken = jwtTokenHelper.generateToken(userDetails.getUsername());
+      return JwtResponse.builder()
+          .accessToken(jwtToken)
+          .refreshToken(refreshToken.getRefreshToken())
+          .type(request.getRole())
+          .message("Login successfully via OTP: " + userDetails.getUsername())
+          .build();
+    } catch (Exception ex) {
+      throw new ResourceNotFoundException("OTP", "verification", ex.getMessage());
     }
   }
 

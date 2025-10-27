@@ -2,6 +2,7 @@ package com.ridefast.ride_fast_backend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ridefast.ride_fast_backend.enums.UserRole;
+import com.ridefast.ride_fast_backend.enums.VerificationStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Entity
 @Builder
@@ -33,6 +35,8 @@ public class Driver {
     private String shortCode;
 
     private String password;
+    @Column(name = "fcm_token")
+    private String fcmToken;
     @OneToOne(mappedBy = "driver", cascade = CascadeType.ALL)
     private License license;
 
@@ -51,5 +55,19 @@ public class Driver {
 
     @OneToOne(mappedBy = "driver")
     private RefreshToken refreshToken;
+
+    // Bank and UPI details
+    private String accountHolderName;
+    private String bankName;
+    private String accountNumber;
+    private String ifscCode;
+    private String upiId;
+    private String bankAddress;
+    private String bankMobile;
+
+    @Enumerated(EnumType.STRING)
+    private VerificationStatus bankVerificationStatus = VerificationStatus.PENDING;
+    private String bankVerificationNotes;
+    private LocalDateTime bankVerifiedAt;
 
 }

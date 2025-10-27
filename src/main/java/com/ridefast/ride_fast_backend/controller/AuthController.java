@@ -11,6 +11,7 @@ import com.ridefast.ride_fast_backend.dto.DriverResponse;
 import com.ridefast.ride_fast_backend.dto.DriverSignUpRequest;
 import com.ridefast.ride_fast_backend.dto.JwtResponse;
 import com.ridefast.ride_fast_backend.dto.LoginRequest;
+import com.ridefast.ride_fast_backend.dto.OtpLoginRequest;
 import com.ridefast.ride_fast_backend.dto.SignUpRequest;
 import com.ridefast.ride_fast_backend.dto.UserResponse;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
@@ -37,6 +38,13 @@ public class AuthController {
   public ResponseEntity<JwtResponse> loginHandler(@RequestBody @Valid LoginRequest loginRequest)
       throws ResourceNotFoundException {
     JwtResponse jwtResponse = authService.loginUser(loginRequest);
+    return new ResponseEntity<>(jwtResponse, HttpStatus.OK);
+  }
+
+  @PostMapping("/login/otp")
+  public ResponseEntity<JwtResponse> otpLoginHandler(@RequestBody @Valid OtpLoginRequest otpLoginRequest)
+      throws ResourceNotFoundException {
+    JwtResponse jwtResponse = authService.loginUserWithOtp(otpLoginRequest);
     return new ResponseEntity<>(jwtResponse, HttpStatus.OK);
   }
 

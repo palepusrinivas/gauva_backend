@@ -3,6 +3,7 @@ package com.ridefast.ride_fast_backend.service;
 import java.util.List;
 
 import com.ridefast.ride_fast_backend.dto.DriverSignUpRequest;
+import com.ridefast.ride_fast_backend.dto.UpdateBankDetailsRequest;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.Driver;
 import com.ridefast.ride_fast_backend.model.Ride;
@@ -23,4 +24,6 @@ public interface DriverService {
   List<Ride> getAllocatedRides(Long driverId);
 
   List<Ride> getCompletedRides(Long driverId);
+
+  Driver updateBankDetails(String jwtToken, UpdateBankDetailsRequest request) throws ResourceNotFoundException;
 }

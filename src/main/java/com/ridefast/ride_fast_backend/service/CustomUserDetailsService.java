@@ -31,9 +31,11 @@ public class CustomUserDetailsService implements UserDetailsService {
 
   @Override
   public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-    MyUser user = userRepository.findByEmail(username).orElse(null);
-    if (user != null)
-     return buildUserDetails(user.getEmail(), user.getPassword(), mapRole(user.getRole()));
+    MyUser user = userRepository.findByEmailOrPhone(username).orElse(null);
+    if (user != null) {
+      String principal = (user.getEmail() != null && !user.getEmail().isBlank()) ? user.getEmail() : user.getPhone();
+      return buildUserDetails(principal, user.getPassword(), mapRole(user.getRole()));
+    }
     Driver driver = driverRepository.findByEmail(username).orElse(null);
     if (driver != null)
       return buildUserDetails(driver.getEmail(), driver.getPassword(), "ROLE_" + UserRole.DRIVER.name());

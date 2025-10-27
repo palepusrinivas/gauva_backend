@@ -16,7 +16,6 @@ import lombok.NoArgsConstructor;
 public class SignUpRequest {
 
   @Email(message = "Invalid email address")
-  @NotEmpty(message = "email is required")
   private String email;
 
   @NotEmpty(message = "full name is required")

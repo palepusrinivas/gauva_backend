@@ -8,8 +8,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.ridefast.ride_fast_backend.dto.DriverSignUpRequest;
+import com.ridefast.ride_fast_backend.dto.UpdateBankDetailsRequest;
 import com.ridefast.ride_fast_backend.enums.RideStatus;
 import com.ridefast.ride_fast_backend.enums.UserRole;
+import com.ridefast.ride_fast_backend.enums.VerificationStatus;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.Driver;
 import com.ridefast.ride_fast_backend.model.License;
@@ -132,6 +134,26 @@ public class DriverServiceImpl implements DriverService {
     Driver driver = driverRepository.findByEmail(email)
         .orElseThrow(() -> new ResourceNotFoundException("Driver", "username", email));
     return driverRepository.getstartedRides(driver.getId());
+  }
+
+  @Override
+  public Driver updateBankDetails(String jwtToken, UpdateBankDetailsRequest request) throws ResourceNotFoundException {
+    String email = tokenHelper.getUsernameFromToken(jwtToken);
+    Driver driver = driverRepository.findByEmail(email)
+        .orElseThrow(() -> new ResourceNotFoundException("Driver", "username", email));
+    driver.setAccountHolderName(request.getAccountHolderName());
+    driver.setBankName(request.getBankName());
+    driver.setAccountNumber(request.getAccountNumber());
+    driver.setIfscCode(request.getIfscCode());
+    driver.setUpiId(request.getUpiId());
+    driver.setBankAddress(request.getBankAddress());
+    driver.setBankMobile(request.getBankMobile());
+
+    // Reset verification on any change
+    driver.setBankVerificationStatus(VerificationStatus.PENDING);
+    driver.setBankVerificationNotes(null);
+    driver.setBankVerifiedAt(null);
+    return driverRepository.save(driver);
   }
 
 }

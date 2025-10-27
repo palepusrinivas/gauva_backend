@@ -24,6 +24,13 @@ public class DriverSignUpRequest {
   private License license;
   private Vehicle vehicle;
   private String driverId;
+  private String accountHolderName;
+  private String bankName;
+  private String accountNumber;
+  private String ifscCode;
+  private String upiId;
+  private String bankAddress;
+  private String bankMobile;
 
     public void setDriverId() {
         Random rd = new Random();

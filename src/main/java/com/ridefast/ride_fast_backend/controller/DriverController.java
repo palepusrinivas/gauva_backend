@@ -7,13 +7,16 @@ import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ridefast.ride_fast_backend.dto.DriverResponse;
 import com.ridefast.ride_fast_backend.dto.RideDto;
+import com.ridefast.ride_fast_backend.dto.UpdateBankDetailsRequest;
 import com.ridefast.ride_fast_backend.enums.RideStatus;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.Driver;
@@ -78,5 +81,14 @@ public class DriverController {
         .stream()
         .map((ride) -> modelMapper.map(ride, RideDto.class)).toList();
     return new ResponseEntity<>(rides, HttpStatus.OK);
+  }
+
+  @PutMapping("/bank")
+  public ResponseEntity<DriverResponse> updateBankDetails(
+      @RequestHeader("Authorization") String jwtToken,
+      @RequestBody UpdateBankDetailsRequest request) throws ResourceNotFoundException {
+    Driver updated = driverService.updateBankDetails(jwtToken, request);
+    DriverResponse response = modelMapper.map(updated, DriverResponse.class);
+    return new ResponseEntity<>(response, HttpStatus.OK);
   }
 }
