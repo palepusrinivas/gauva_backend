@@ -31,4 +31,17 @@ public class SignUpRequest {
 
 //  @JsonAlias({"language", "lang"})
 //  private String currentLanguageKey;
+
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        if (phone != null) {
+            this.phone = phone.replace("+91", "").replaceAll("\\s+", "");
+        } else {
+            this.phone = null;
+        }
+    }
 }

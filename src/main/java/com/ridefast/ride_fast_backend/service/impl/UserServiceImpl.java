@@ -29,7 +29,7 @@ public class UserServiceImpl implements UserService {
     MyUser user = null;
     if (usereRepository.findByEmail(email).isPresent())
       user = usereRepository.findByEmail(email).get();
-    if (user != null)
+        if (user != null)
       return user;
     throw new UserException("Invalid Jwt Token");
   }
