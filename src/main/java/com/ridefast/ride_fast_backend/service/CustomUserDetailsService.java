@@ -41,7 +41,7 @@ public class CustomUserDetailsService implements UserDetailsService {
       return buildUserDetails(driver.getEmail(), driver.getPassword(), "ROLE_" + UserRole.DRIVER.name());
     AdminUser admin = adminUserRepository.findByUsername(username).orElse(null);
     if (admin != null)
-      return buildUserDetails(admin.getUsername(), admin.getPassword(), admin.getRole());
+      return buildUserDetails(admin.getUsername(), admin.getPassword(), normalizeRole(admin.getRole()));
     throw new UsernameNotFoundException("User or Driver not found");
   }
 
@@ -56,6 +56,11 @@ public class CustomUserDetailsService implements UserDetailsService {
   private String mapRole(UserRole role) {
     if (role == null) return null;
     return "ROLE_" + role.name();
+  }
+
+  private String normalizeRole(String role) {
+    if (role == null || role.isBlank()) return null;
+    return role.startsWith("ROLE_") ? role : ("ROLE_" + role);
   }
 
 }

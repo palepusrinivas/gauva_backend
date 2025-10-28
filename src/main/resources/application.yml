@@ -34,11 +34,12 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:127.0.0.1}
-      port: ${REDIS_PORT:6379}
+      host: ${REDIS_HOST:redis-18083.c322.us-east-1-2.ec2.redns.redis-cloud.com}
+      port: ${REDIS_PORT:18083}
+      username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD:}
       ssl:
-        enabled: ${REDIS_SSL:false}
+        enabled: ${REDIS_SSL:true}
 
 app:
   cors:
@@ -88,3 +89,4 @@ management:
     health:
       probes:
         enabled: true
+      show-details: always

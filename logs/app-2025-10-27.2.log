@@ -1,0 +1,162 @@
+2025-10-27 22:17:35.233 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:17:35.239 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:17:56.346 INFO  [MessageBroker-1] o.s.w.s.c.WebSocketMessageBrokerStats - WebSocketSession[0 current WS(0)-HttpStream(0)-HttpPoll(0), 0 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(0)-CONNECTED(0)-DISCONNECT(0)], stompBrokerRelay[null], inboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], outboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], sockJsScheduler[pool size = 2, active threads = 1, queued tasks = 1, completed tasks = 0]
+2025-10-27 22:18:05.248 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:18:05.249 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:18:35.256 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:18:35.256 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:18:58.487 DEBUG [http-nio-8080-exec-7] o.s.security.web.FilterChainProxy - Securing POST /api/v1/admin/login
+2025-10-27 22:18:58.490 DEBUG [http-nio-8080-exec-7] o.s.s.w.a.AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2025-10-27 22:18:58.490 DEBUG [http-nio-8080-exec-7] o.s.security.web.FilterChainProxy - Secured POST /api/v1/admin/login
+2025-10-27 22:18:58.491 DEBUG [http-nio-8080-exec-7] o.s.web.servlet.DispatcherServlet - POST "/api/v1/admin/login", parameters={}
+2025-10-27 22:18:58.491 DEBUG [http-nio-8080-exec-7] o.s.w.s.m.m.a.RequestMappingHandlerMapping - Mapped to com.ridefast.ride_fast_backend.controller.admin.AdminAuthController#login(AdminLoginRequest)
+2025-10-27 22:18:58.492 DEBUG [http-nio-8080-exec-7] o.s.o.j.s.OpenEntityManagerInViewInterceptor - Opening JPA EntityManager in OpenEntityManagerInViewInterceptor
+2025-10-27 22:18:58.529 DEBUG [http-nio-8080-exec-7] o.s.w.s.m.m.a.RequestResponseBodyMethodProcessor - Read "application/json;charset=UTF-8" to [AdminLoginRequest(username=string, password=string)]
+2025-10-27 22:18:58.603 DEBUG [http-nio-8080-exec-7] org.hibernate.orm.sql.ast.create - Created new SQL alias : au1_0
+2025-10-27 22:18:58.605 DEBUG [http-nio-8080-exec-7] org.hibernate.orm.sql.ast.create - Registration of TableGroup [StandardTableGroup(com.ridefast.ride_fast_backend.model.AdminUser(437476423431800))] with identifierForTableGroup [com.ridefast.ride_fast_backend.model.AdminUser] for NavigablePath [com.ridefast.ride_fast_backend.model.AdminUser] 
+2025-10-27 22:18:58.605 DEBUG [http-nio-8080-exec-7] o.h.q.s.sql.BaseSqmToSqlAstConverter - Determining mapping-model type for SqmParameter : org.hibernate.query.sqm.tree.expression.SqmJpaCriteriaParameterWrapper@1e28f46f
+2025-10-27 22:18:58.605 DEBUG [http-nio-8080-exec-7] o.h.q.s.sql.BaseSqmToSqlAstConverter - Determining mapping-model type for SqmPath : SqmBasicValuedSimplePath(com.ridefast.ride_fast_backend.model.AdminUser(437476423431800).username) 
+2025-10-27 22:18:58.605 DEBUG [http-nio-8080-exec-7] org.hibernate.orm.results.graph.AST - DomainResult Graph:
+ \-EntityResultImpl [com.ridefast.ride_fast_backend.model.AdminUser(437476423431800)]
+ |  +-BasicFetch [com.ridefast.ride_fast_backend.model.AdminUser(437476423431800).password]
+ |  +-BasicFetch [com.ridefast.ride_fast_backend.model.AdminUser(437476423431800).role]
+ |  \-BasicFetch [com.ridefast.ride_fast_backend.model.AdminUser(437476423431800).username]
+
+2025-10-27 22:18:58.606 DEBUG [http-nio-8080-exec-7] org.hibernate.orm.sql.ast.tree - SQL AST Tree:
+    SelectStatement {
+      FromClause {
+        StandardTableGroup (au1 : com.ridefast.ride_fast_backend.model.AdminUser(437476423431800)) {
+          primaryTableReference : admin_users as au1_0
+        }
+      }
+    }
+
+2025-10-27 22:18:58.606 DEBUG [http-nio-8080-exec-7] org.hibernate.orm.sql.exec - Skipping reading Query result cache data: cache-enabled = false, cache-mode = NORMAL
+2025-10-27 22:18:58.606 DEBUG [http-nio-8080-exec-7] org.hibernate.orm.results - Initializer list:
+	  com.ridefast.ride_fast_backend.model.AdminUser(437476423431800) -> EntityResultInitializer(com.ridefast.ride_fast_backend.model.AdminUser(437476423431800))@309287484 (SingleTableEntityPersister(com.ridefast.ride_fast_backend.model.AdminUser))
+
+2025-10-27 22:18:58.606 DEBUG [http-nio-8080-exec-7] org.hibernate.SQL - select au1_0.id,au1_0.password,au1_0.role,au1_0.username from admin_users au1_0 where au1_0.username=?
+2025-10-27 22:18:58.714 DEBUG [http-nio-8080-exec-7] o.s.w.s.m.m.a.HttpEntityMethodProcessor - Using 'text/plain', given [*/*] and supported [text/plain, */*, application/json, application/*+json]
+2025-10-27 22:18:58.714 DEBUG [http-nio-8080-exec-7] o.s.w.s.m.m.a.HttpEntityMethodProcessor - Writing ["Invalid credentials"]
+2025-10-27 22:18:58.716 DEBUG [http-nio-8080-exec-7] o.s.o.j.s.OpenEntityManagerInViewInterceptor - Closing JPA EntityManager in OpenEntityManagerInViewInterceptor
+2025-10-27 22:18:58.716 DEBUG [http-nio-8080-exec-7] o.s.web.servlet.DispatcherServlet - Completed 401 UNAUTHORIZED
+2025-10-27 22:19:05.271 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:19:05.272 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:19:35.280 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:19:35.281 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:20:05.288 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:20:05.288 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:20:35.298 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:20:35.299 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:21:05.308 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:21:05.308 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:21:35.310 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:21:35.311 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:22:05.318 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:22:05.319 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:22:35.322 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:22:35.323 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:23:05.339 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:23:05.339 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:23:35.355 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:23:35.356 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:24:05.363 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:24:05.363 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:24:35.372 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:24:35.373 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:25:05.378 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:25:05.378 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:25:35.381 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:25:35.381 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:26:05.385 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:26:05.385 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:26:35.393 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:26:35.393 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:27:05.405 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:27:05.406 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:27:35.414 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:27:35.415 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:28:05.424 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:28:05.424 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:28:35.435 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:28:35.436 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:29:05.445 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:29:05.446 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:29:35.450 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:29:35.451 DEBUG [HikariPool-1 housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled (queueDepth=0).
+2025-10-27 22:30:02.087 ERROR [MessageBroker-2] c.r.r.s.s.i.FirebaseStorageServiceImpl - Failed to upload to Firebase Storage [bucket=gauva-15d9a.appspot.com, object=app_logs/server_20251027_223000_app.log]: java.lang.IllegalArgumentException: Bucket gauva-15d9a.appspot.com does not exist.
+2025-10-27 22:30:02.088 WARN  [MessageBroker-2] c.r.r.service.logs.LogAutoUploader - Auto log upload failed: Upload failed
+2025-10-27 22:30:03.721 DEBUG [SpringApplicationShutdownHook] o.s.b.a.ApplicationAvailabilityBean - Application availability state ReadinessState changed from ACCEPTING_TRAFFIC to REFUSING_TRAFFIC
+2025-10-27 22:30:03.723 DEBUG [SpringApplicationShutdownHook] o.s.b.w.s.c.AnnotationConfigServletWebServerApplicationContext - Closing org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@4980304a, started on Mon Oct 27 22:16:28 IST 2025
+2025-10-27 22:30:03.730 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Stopping beans in phase 2147483647
+2025-10-27 22:30:03.733 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Bean 'stompWebSocketHandlerMapping' completed its stop procedure
+2025-10-27 22:30:03.734 DEBUG [SpringApplicationShutdownHook] o.s.m.s.ExecutorSubscribableChannel - clientOutboundChannel removed SubProtocolWebSocketHandler[StompSubProtocolHandler[v10.stomp, v11.stomp, v12.stomp]]
+2025-10-27 22:30:03.734 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Bean 'subProtocolWebSocketHandler' completed its stop procedure
+2025-10-27 22:30:03.734 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Bean 'clientInboundChannelExecutor' completed its stop procedure
+2025-10-27 22:30:03.734 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Bean 'clientOutboundChannelExecutor' completed its stop procedure
+2025-10-27 22:30:03.734 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Bean 'brokerChannelExecutor' completed its stop procedure
+2025-10-27 22:30:03.734 DEBUG [SpringApplicationShutdownHook] o.s.m.s.ExecutorSubscribableChannel - clientInboundChannel removed WebSocketAnnotationMethodMessageHandler[prefixes=[/app/]]
+2025-10-27 22:30:03.734 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Bean 'simpAnnotationMethodMessageHandler' completed its stop procedure
+2025-10-27 22:30:03.734 INFO  [SpringApplicationShutdownHook] o.s.m.s.b.SimpleBrokerMessageHandler - Stopping...
+2025-10-27 22:30:03.734 INFO  [SpringApplicationShutdownHook] o.s.m.s.b.SimpleBrokerMessageHandler - BrokerAvailabilityEvent[available=false, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@3c6f43f2]]
+2025-10-27 22:30:03.734 DEBUG [SpringApplicationShutdownHook] o.s.m.s.ExecutorSubscribableChannel - clientInboundChannel removed SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@3c6f43f2]
+2025-10-27 22:30:03.735 DEBUG [SpringApplicationShutdownHook] o.s.m.s.ExecutorSubscribableChannel - brokerChannel removed SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@3c6f43f2]
+2025-10-27 22:30:03.735 INFO  [SpringApplicationShutdownHook] o.s.m.s.b.SimpleBrokerMessageHandler - Stopped.
+2025-10-27 22:30:03.735 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Bean 'simpleBrokerMessageHandler' completed its stop procedure
+2025-10-27 22:30:03.735 DEBUG [SpringApplicationShutdownHook] o.s.m.s.ExecutorSubscribableChannel - clientInboundChannel removed UserDestinationMessageHandler[DefaultUserDestinationResolver[prefix=/user/]]
+2025-10-27 22:30:03.735 DEBUG [SpringApplicationShutdownHook] o.s.m.s.ExecutorSubscribableChannel - brokerChannel removed UserDestinationMessageHandler[DefaultUserDestinationResolver[prefix=/user/]]
+2025-10-27 22:30:03.735 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Bean 'userDestinationMessageHandler' completed its stop procedure
+2025-10-27 22:30:03.735 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Stopping beans in phase 2147482623
+2025-10-27 22:30:03.738 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Bean 'webServerGracefulShutdown' completed its stop procedure
+2025-10-27 22:30:03.738 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Stopping beans in phase 2147481599
+2025-10-27 22:30:03.762 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Bean 'webServerStartStop' completed its stop procedure
+2025-10-27 22:30:03.762 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Stopping beans in phase 0
+2025-10-27 22:30:03.764 DEBUG [SpringApplicationShutdownHook] io.lettuce.core.AbstractRedisClient - Initiate shutdown (100, 100, MILLISECONDS)
+2025-10-27 22:30:03.776 DEBUG [SpringApplicationShutdownHook] i.l.c.r.DefaultClientResources - Initiate shutdown (100, 100, MILLISECONDS)
+2025-10-27 22:30:03.781 DEBUG [SpringApplicationShutdownHook] i.l.c.r.DefaultEventLoopGroupProvider - Initiate shutdown (100, 100, MILLISECONDS)
+2025-10-27 22:30:03.782 DEBUG [SpringApplicationShutdownHook] i.l.c.r.DefaultEventLoopGroupProvider - Release executor io.netty.channel.nio.NioEventLoopGroup@555d30e8
+2025-10-27 22:30:03.907 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Bean 'redisConnectionFactory' completed its stop procedure
+2025-10-27 22:30:03.907 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Stopping beans in phase -2147483647
+2025-10-27 22:30:03.907 DEBUG [SpringApplicationShutdownHook] o.s.c.s.DefaultLifecycleProcessor - Bean 'springBootLoggingLifecycle' completed its stop procedure
+2025-10-27 22:30:03.909 DEBUG [SpringApplicationShutdownHook] o.s.d.r.l.RedisMessageListenerContainer - Stopped RedisMessageListenerContainer
+2025-10-27 22:30:03.915 DEBUG [SpringApplicationShutdownHook] o.s.b.a.e.jmx.JmxEndpointExporter - Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Beans' from the JMX domain
+2025-10-27 22:30:03.916 DEBUG [SpringApplicationShutdownHook] o.s.b.a.e.jmx.JmxEndpointExporter - Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Caches' from the JMX domain
+2025-10-27 22:30:03.916 DEBUG [SpringApplicationShutdownHook] o.s.b.a.e.jmx.JmxEndpointExporter - Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Health' from the JMX domain
+2025-10-27 22:30:03.916 DEBUG [SpringApplicationShutdownHook] o.s.b.a.e.jmx.JmxEndpointExporter - Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Info' from the JMX domain
+2025-10-27 22:30:03.916 DEBUG [SpringApplicationShutdownHook] o.s.b.a.e.jmx.JmxEndpointExporter - Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Conditions' from the JMX domain
+2025-10-27 22:30:03.916 DEBUG [SpringApplicationShutdownHook] o.s.b.a.e.jmx.JmxEndpointExporter - Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Configprops' from the JMX domain
+2025-10-27 22:30:03.916 DEBUG [SpringApplicationShutdownHook] o.s.b.a.e.jmx.JmxEndpointExporter - Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Env' from the JMX domain
+2025-10-27 22:30:03.916 DEBUG [SpringApplicationShutdownHook] o.s.b.a.e.jmx.JmxEndpointExporter - Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Loggers' from the JMX domain
+2025-10-27 22:30:03.916 DEBUG [SpringApplicationShutdownHook] o.s.b.a.e.jmx.JmxEndpointExporter - Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Threaddump' from the JMX domain
+2025-10-27 22:30:03.916 DEBUG [SpringApplicationShutdownHook] o.s.b.a.e.jmx.JmxEndpointExporter - Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Metrics' from the JMX domain
+2025-10-27 22:30:03.916 DEBUG [SpringApplicationShutdownHook] o.s.b.a.e.jmx.JmxEndpointExporter - Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Scheduledtasks' from the JMX domain
+2025-10-27 22:30:03.916 DEBUG [SpringApplicationShutdownHook] o.s.b.a.e.jmx.JmxEndpointExporter - Unregister endpoint with ObjectName 'org.springframework.boot:type=Endpoint,name=Mappings' from the JMX domain
+2025-10-27 22:30:03.917 DEBUG [SpringApplicationShutdownHook] o.s.j.e.a.AnnotationMBeanExporter - Unregistering JMX-exposed beans on shutdown
+2025-10-27 22:30:03.918 DEBUG [SpringApplicationShutdownHook] o.s.j.e.a.AnnotationMBeanExporter - Unregistering JMX-exposed beans
+2025-10-27 22:30:03.919 DEBUG [SpringApplicationShutdownHook] i.l.c.r.DefaultClientResources - Initiate shutdown (0, 2, SECONDS)
+2025-10-27 22:30:03.919 DEBUG [SpringApplicationShutdownHook] i.l.c.r.DefaultEventLoopGroupProvider - Initiate shutdown (0, 2, SECONDS)
+2025-10-27 22:30:03.937 DEBUG [SpringApplicationShutdownHook] o.s.b.f.s.DisposableBeanAdapter - Custom destroy method 'shutdown' on bean with name 'lettuceClientResources' completed asynchronously
+2025-10-27 22:30:03.944 DEBUG [SpringApplicationShutdownHook] o.s.s.c.ThreadPoolTaskScheduler - Shutting down ExecutorService 'messageBrokerTaskScheduler'
+2025-10-27 22:30:03.946 DEBUG [SpringApplicationShutdownHook] o.s.s.c.ThreadPoolTaskExecutor - Shutting down ExecutorService 'brokerChannelExecutor'
+2025-10-27 22:30:03.947 DEBUG [SpringApplicationShutdownHook] o.s.s.c.ThreadPoolTaskExecutor - Shutting down ExecutorService 'clientOutboundChannelExecutor'
+2025-10-27 22:30:03.947 DEBUG [SpringApplicationShutdownHook] o.s.s.c.ThreadPoolTaskExecutor - Shutting down ExecutorService 'clientInboundChannelExecutor'
+2025-10-27 22:30:03.953 INFO  [SpringApplicationShutdownHook] o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-10-27 22:30:03.953 DEBUG [SpringApplicationShutdownHook] o.h.internal.SessionFactoryImpl - HHH000031: Closing
+2025-10-27 22:30:03.954 DEBUG [SpringApplicationShutdownHook] o.h.type.spi.TypeConfiguration$Scope - Un-scoping TypeConfiguration [org.hibernate.type.spi.TypeConfiguration$Scope@4510bb97] from SessionFactory [org.hibernate.internal.SessionFactoryImpl@11351a9]
+2025-10-27 22:30:03.955 DEBUG [SpringApplicationShutdownHook] o.h.s.i.AbstractServiceRegistryImpl - Implicitly destroying ServiceRegistry on de-registration of all child ServiceRegistries
+2025-10-27 22:30:03.957 DEBUG [SpringApplicationShutdownHook] o.h.b.r.i.BootstrapServiceRegistryImpl - Implicitly destroying Boot-strap registry on de-registration of all child ServiceRegistries
+2025-10-27 22:30:03.964 INFO  [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2025-10-27 22:30:03.964 DEBUG [SpringApplicationShutdownHook] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Before shutdown stats (total=10, active=0, idle=10, waiting=0)
+2025-10-27 22:30:03.967 DEBUG [HikariPool-1 connection closer] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Closing connection com.mysql.cj.jdbc.ConnectionImpl@4809d725: (connection evicted)
+2025-10-27 22:30:03.976 DEBUG [HikariPool-1 connection closer] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Closing connection com.mysql.cj.jdbc.ConnectionImpl@723953a6: (connection evicted)
+2025-10-27 22:30:03.978 DEBUG [HikariPool-1 connection closer] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Closing connection com.mysql.cj.jdbc.ConnectionImpl@3304599d: (connection evicted)
+2025-10-27 22:30:03.978 DEBUG [HikariPool-1 connection closer] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Closing connection com.mysql.cj.jdbc.ConnectionImpl@27d09c7: (connection evicted)
+2025-10-27 22:30:03.979 DEBUG [HikariPool-1 connection closer] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Closing connection com.mysql.cj.jdbc.ConnectionImpl@532ba6d2: (connection evicted)
+2025-10-27 22:30:03.980 DEBUG [HikariPool-1 connection closer] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Closing connection com.mysql.cj.jdbc.ConnectionImpl@d6d3050: (connection evicted)
+2025-10-27 22:30:03.980 DEBUG [HikariPool-1 connection closer] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Closing connection com.mysql.cj.jdbc.ConnectionImpl@57651940: (connection evicted)
+2025-10-27 22:30:03.981 DEBUG [HikariPool-1 connection closer] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Closing connection com.mysql.cj.jdbc.ConnectionImpl@756e260e: (connection evicted)
+2025-10-27 22:30:03.981 DEBUG [HikariPool-1 connection closer] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Closing connection com.mysql.cj.jdbc.ConnectionImpl@626cde2e: (connection evicted)
+2025-10-27 22:30:03.982 DEBUG [HikariPool-1 connection closer] com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Closing connection com.mysql.cj.jdbc.ConnectionImpl@5c37018f: (connection evicted)
+2025-10-27 22:30:03.982 DEBUG [SpringApplicationShutdownHook] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - After shutdown stats (total=0, active=0, idle=0, waiting=0)
+2025-10-27 22:30:03.983 INFO  [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2025-10-27 22:30:03.983 DEBUG [SpringApplicationShutdownHook] o.s.b.f.s.DisposableBeanAdapter - Custom destroy method 'close' on bean with name 'simpleMeterRegistry' completed
