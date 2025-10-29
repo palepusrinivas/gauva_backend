@@ -1,6 +1,8 @@
 package com.ridefast.ride_fast_backend.controller.customer;
 
 import com.ridefast.ride_fast_backend.service.maps.MapsKeyService;
+import com.ridefast.ride_fast_backend.model.Zone;
+import com.ridefast.ride_fast_backend.repository.ZoneRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +11,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.PrecisionModel;
+import org.locationtech.jts.io.WKTReader;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -21,6 +29,7 @@ import java.util.Optional;
 public class CustomerConfigController {
 
   private final MapsKeyService mapsKeyService;
+  private final ZoneRepository zoneRepository;
   private final RestTemplate restTemplate = new RestTemplate();
 
   // Compatibility for: /api/customer/config/place-api-autocomplete?search_text=...
@@ -94,5 +103,38 @@ public class CustomerConfigController {
 
     Map<?,?> resp = restTemplate.getForObject(URI.create(url.toString()), Map.class);
     return ResponseEntity.ok(resp);
+  }
+
+  // New: /api/customer/config/get-zone-id?lat=..&lng=..
+  @GetMapping("/get-zone-id")
+  public ResponseEntity<?> getZoneId(
+      @RequestParam("lat") Double lat,
+      @RequestParam("lng") Double lng) {
+    if (lat == null || lng == null) {
+      return new ResponseEntity<>(Map.of("error", "lat and lng are required"), HttpStatus.BAD_REQUEST);
+    }
+
+    GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
+    Point point = gf.createPoint(new Coordinate(lng, lat)); // x=lng, y=lat
+    WKTReader reader = new WKTReader(gf);
+
+    for (Zone z : zoneRepository.findAll()) {
+      if (z == null || !z.isActive()) continue;
+      String wkt = z.getPolygonWkt();
+      if (wkt == null || wkt.isBlank()) continue;
+      try {
+        Geometry poly = reader.read(wkt);
+        if (poly != null && (poly.contains(point) || poly.covers(point))) {
+          return ResponseEntity.ok(Map.of(
+              "zoneId", z.getReadableId(),
+              "name", z.getName()
+          ));
+        }
+      } catch (Exception ignore) {
+        // skip invalid polygons
+      }
+    }
+
+    return new ResponseEntity<>(Map.of("error", "Zone not found for given location"), HttpStatus.NOT_FOUND);
   }
 }
