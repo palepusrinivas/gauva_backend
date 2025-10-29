@@ -2,6 +2,11 @@ package com.ridefast.ride_fast_backend.controller.admin;
 
 import com.ridefast.ride_fast_backend.model.Ride;
 import com.ridefast.ride_fast_backend.repository.RideRepository;
+import com.ridefast.ride_fast_backend.dto.admin.AdminKpiResponse;
+import com.ridefast.ride_fast_backend.dto.admin.AdminRecentTrip;
+import com.ridefast.ride_fast_backend.dto.admin.AdminZoneStat;
+import com.ridefast.ride_fast_backend.model.PaymentTransaction;
+import com.ridefast.ride_fast_backend.service.admin.AdminAnalyticsService;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -24,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminAnalyticsController {
 
   private final RideRepository rideRepository;
+  private final AdminAnalyticsService adminAnalyticsService;
 
   @GetMapping("/heatmap")
   public ResponseEntity<?> heatmap(
@@ -47,5 +53,25 @@ public class AdminAnalyticsController {
     } catch (DateTimeParseException ex) {
       return new ResponseEntity<>(Map.of("error", "Invalid datetime format. Use ISO-8601, e.g., 2025-10-25T00:00:00"), HttpStatus.BAD_REQUEST);
     }
+  }
+
+  @GetMapping("/kpis")
+  public ResponseEntity<AdminKpiResponse> kpis(@RequestParam(defaultValue = "30") int windowDays) {
+    return ResponseEntity.ok(adminAnalyticsService.getKpis(windowDays));
+  }
+
+  @GetMapping("/recent-trips")
+  public ResponseEntity<List<AdminRecentTrip>> recentTrips(@RequestParam(defaultValue = "20") int limit) {
+    return ResponseEntity.ok(adminAnalyticsService.getRecentTrips(limit));
+  }
+
+  @GetMapping("/zones")
+  public ResponseEntity<List<AdminZoneStat>> zones(@RequestParam(defaultValue = "7") int windowDays) {
+    return ResponseEntity.ok(adminAnalyticsService.getZoneStats(windowDays));
+  }
+
+  @GetMapping("/recent-transactions")
+  public ResponseEntity<List<PaymentTransaction>> recentTransactions(@RequestParam(defaultValue = "20") int limit) {
+    return ResponseEntity.ok(adminAnalyticsService.getRecentTransactions(limit));
   }
 }
