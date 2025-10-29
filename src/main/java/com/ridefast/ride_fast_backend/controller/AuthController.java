@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,9 +18,13 @@ import com.ridefast.ride_fast_backend.dto.UserResponse;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.exception.UserException;
 import com.ridefast.ride_fast_backend.service.AuthService;
+import com.ridefast.ride_fast_backend.service.RefreshTokenService;
+import com.ridefast.ride_fast_backend.enums.UserRole;
+import com.ridefast.ride_fast_backend.util.JwtTokenHelper;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -27,6 +32,8 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
   private final AuthService authService;
+  private final RefreshTokenService refreshTokenService;
+  private final JwtTokenHelper jwtTokenHelper;
 
   @PostMapping("/register/user")
   public ResponseEntity<UserResponse> signUpHandler(@RequestBody @Valid SignUpRequest signUpRequest) throws UserException {
@@ -52,5 +59,19 @@ public class AuthController {
   public ResponseEntity<DriverResponse> registerDriver(@RequestBody @Valid DriverSignUpRequest signUpRequest) {
     DriverResponse driverResponse = authService.registerDriver(signUpRequest);
     return new ResponseEntity<>(driverResponse, HttpStatus.CREATED);
+  }
+
+  @PostMapping("/logout/user")
+  public ResponseEntity<?> logoutUser(@RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
+    String username = jwtTokenHelper.getUsernameFromToken(authHeader);
+    refreshTokenService.revokeByUsername(username, UserRole.NORMAL_USER);
+    return ResponseEntity.ok(Map.of("status", "logged_out"));
+  }
+
+  @PostMapping("/logout/driver")
+  public ResponseEntity<?> logoutDriver(@RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
+    String username = jwtTokenHelper.getUsernameFromToken(authHeader);
+    refreshTokenService.revokeByUsername(username, UserRole.DRIVER);
+    return ResponseEntity.ok(Map.of("status", "logged_out"));
   }
 }

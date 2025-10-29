@@ -84,4 +84,23 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     }
     return jwtTokenHelper.generateToken(username);
   }
+
+  @Override
+  public void revokeByUsername(String username, UserRole userRole) throws ResourceNotFoundException {
+    if (userRole == UserRole.NORMAL_USER) {
+      MyUser user = userRepository.findByEmail(username)
+          .orElseThrow(() -> new ResourceNotFoundException("User", "email", username));
+      RefreshToken rt = user.getRefreshToken();
+      if (rt != null) {
+        refreshTokenRepository.delete(rt);
+      }
+    } else {
+      Driver driver = driverRepository.findByEmail(username)
+          .orElseThrow(() -> new ResourceNotFoundException("Driver", "email", username));
+      RefreshToken rt = driver.getRefreshToken();
+      if (rt != null) {
+        refreshTokenRepository.delete(rt);
+      }
+    }
+  }
 }

@@ -18,6 +18,10 @@ public class TrackingServiceImpl implements TrackingService {
     return "ride:last:" + rideId;
   }
 
+  private String userKey(String userId) {
+    return "user:last:" + userId;
+  }
+
   @Override
   public void saveLastLocation(Long rideId, LocationUpdate update) {
     redisTemplate.opsForValue().set(key(rideId), update);
@@ -26,6 +30,18 @@ public class TrackingServiceImpl implements TrackingService {
   @Override
   public LocationUpdate getLastLocation(Long rideId) {
     Object o = redisTemplate.opsForValue().get(key(rideId));
+    if (o instanceof LocationUpdate lu) return lu;
+    return null;
+  }
+
+  @Override
+  public void saveUserLastLocation(String userId, LocationUpdate update) {
+    redisTemplate.opsForValue().set(userKey(userId), update);
+  }
+
+  @Override
+  public LocationUpdate getUserLastLocation(String userId) {
+    Object o = redisTemplate.opsForValue().get(userKey(userId));
     if (o instanceof LocationUpdate lu) return lu;
     return null;
   }

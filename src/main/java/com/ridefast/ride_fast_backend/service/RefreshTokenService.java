@@ -10,4 +10,6 @@ public interface RefreshTokenService {
   boolean verifyRefreshToken(RefreshToken refreshToken);
 
   String createJwtTokenFromRefreshToken(RefreshToken refreshToken, UserRole userRole) throws ResourceNotFoundException;
+
+  void revokeByUsername(String username, UserRole userRole) throws ResourceNotFoundException;
 }

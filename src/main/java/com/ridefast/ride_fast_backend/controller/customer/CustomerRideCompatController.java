@@ -6,6 +6,7 @@ import com.ridefast.ride_fast_backend.dto.LocationUpdate;
 import com.ridefast.ride_fast_backend.service.FareEngine;
 import com.ridefast.ride_fast_backend.service.TrackingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -17,7 +18,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 public class CustomerRideCompatController {
-
+    @Autowired
   private final TrackingService trackingService;
   private final SimpMessagingTemplate messagingTemplate;
   private final FareEngine fareEngine;

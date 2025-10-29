@@ -5,4 +5,6 @@ import com.ridefast.ride_fast_backend.dto.LocationUpdate;
 public interface TrackingService {
   void saveLastLocation(Long rideId, LocationUpdate update);
   LocationUpdate getLastLocation(Long rideId);
+  void saveUserLastLocation(String userId, LocationUpdate update);
+  LocationUpdate getUserLastLocation(String userId);
 }
