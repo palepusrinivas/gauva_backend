@@ -1,6 +1,7 @@
 package com.ridefast.ride_fast_backend.service.impl;
 
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -42,6 +43,7 @@ import java.time.LocalDateTime;
 public class AuthServiceImpl implements AuthService {
 
   private final UserRepository userRepository;
+  @Autowired
   private final RefreshTokenService refreshTokenService;
   private final JwtTokenHelper jwtTokenHelper;
   private final AuthenticationManager authenticationManager;
