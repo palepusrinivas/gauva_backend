@@ -1,5 +1,7 @@
 package com.ridefast.ride_fast_backend.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -40,6 +42,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class PaymentController {
+  private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
   private final UserService userService;
   private final RideService rideService;
   private final RideRepository rideRepository;
@@ -95,14 +98,12 @@ public class PaymentController {
       String paymentLinkUrl = payment.get("short_url");
 
       PaymentLinkResponse res = new PaymentLinkResponse(paymentLinkUrl, paymentLinkId);
-
-      System.out.println("Payment link ID: " + res.getPaymentLinkId());
-      System.out.println("Payment link URL: " + res.getPaymentLinkUrl());
+      log.debug("Payment link created id={} url={}", res.getPaymentLinkId(), res.getPaymentLinkUrl());
 
       return new ResponseEntity<PaymentLinkResponse>(res, HttpStatus.ACCEPTED);
 
     } catch (Exception e) {
-      System.out.println("Error creating payment link: " + e.getMessage());
+      log.warn("Error creating payment link: {}", e.getMessage());
       throw new RazorpayException(e.getMessage());
     }
   }
@@ -116,26 +117,23 @@ public class PaymentController {
     try {
 
       Payment payment = razorpay.payments.fetch(paymentId);
-      System.out.println("payment details --- " + payment + payment.get("status"));
+        log.debug("Payment fetched status={}", (Object) payment.get("status"));
 
       if (payment.get("status").equals("captured")) {
-        System.out.println("payment details --- " + payment + payment.get("status"));
+        log.debug("Payment captured for rideId={}", ride.getId());
         if (ride.getPaymentDetails() == null) {
           ride.setPaymentDetails(new PaymentDetails());
         }
         ride.getPaymentDetails().setPaymentId(paymentId);
         ride.getPaymentDetails().setPaymentStatus(PaymentStatus.COMPLETED);
 
-        // order.setOrderItems(order.getOrderItems());
-        System.out.println(ride.getPaymentDetails().getPaymentStatus() + "payment status ");
         rideRepository.save(ride);
-        ;
       }
       MessageResponse res = new MessageResponse("your order get placed");
       return new ResponseEntity<>(res, HttpStatus.OK);
 
     } catch (Exception e) {
-      System.out.println("errrr payment -------- ");
+      log.warn("Payment redirect handling failed: {}", e.getMessage());
       new RedirectView("http://localhost:3000/payment/failed");
       throw new RazorpayException(e.getMessage());
     }

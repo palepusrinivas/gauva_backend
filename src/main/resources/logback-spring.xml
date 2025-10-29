@@ -2,11 +2,11 @@
 <configuration scan="true" scanPeriod="60 seconds">
 
   <property name="LOG_PATH" value="${app.logging.log-path:-logs}" />
-  <property name="LOG_LEVEL" value="${app.logging.level:INFO}" />
+  <property name="LOG_LEVEL" value="${app.logging.level:WARN}" />
 
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{cid}] %logger{36} - %msg%n</pattern>
     </encoder>
   </appender>
 
@@ -22,17 +22,17 @@
       <cleanHistoryOnStart>true</cleanHistoryOnStart>
     </rollingPolicy>
     <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{cid}] %logger{36} - %msg%n</pattern>
     </encoder>
     <append>true</append>
   </appender>
 
-  <logger name="com.ridefast" level="DEBUG" additivity="false">
+  <logger name="com.ridefast" level="INFO" additivity="false">
     <appender-ref ref="CONSOLE"/>
     <appender-ref ref="ROLLING"/>
   </logger>
 
-  <root level="${LOG_LEVEL}">
+  <root level="WARN">
     <appender-ref ref="CONSOLE"/>
     <appender-ref ref="ROLLING"/>
   </root>

@@ -2,6 +2,8 @@ package com.ridefast.ride_fast_backend.filter;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,6 +26,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+  private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
   private final UserDetailsService userDetailsService;
   private final JwtTokenHelper jwtTokenHelper;
 
@@ -37,7 +41,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      */
 
     String requestToken = request.getHeader("Authorization");
-    System.out.println(request);
     String token = null;
     String username = null;
     if (requestToken != null && requestToken.startsWith("Bearer ")) {
@@ -46,14 +49,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       try {
         username = jwtTokenHelper.getUsernameFromToken(token);
       } catch (IllegalArgumentException e) {
-        System.out.println("Unable to get Jwt Token");
+        log.debug("Unable to get JWT token: {}", e.getMessage());
       } catch (ExpiredJwtException e) {
-        System.out.println("Jwt Token is expired ");
+        log.debug("JWT token expired");
       } catch (MalformedJwtException e) {
-        System.out.println("Invalid Jwt Token ");
+        log.debug("Invalid JWT token");
       }
     } else {
-      System.out.println("Jwt token does not begin with Bearer");
+      if (requestToken != null) {
+        log.debug("Authorization header present but does not begin with Bearer");
+      }
     }
 
     // once we get the token now we validate it
@@ -67,10 +72,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
       } else {
-        System.out.println("Invalid Jwt Token");
+        log.debug("JWT token validation failed");
       }
     } else {
-      System.out.println("Username is null or context is not null");
+      // Reduce noise: only log at trace/debug if needed
+      log.trace("Skipping JWT auth: username null or context already set");
     }
 
     filterChain.doFilter(request, response);

@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ public class AdminKycController {
 
   private final DriverRepository driverRepository;
   private final DriverKycRepository kycRepository;
+  @Autowired
   private final StorageService storageService;
   private final SignedUrlService signedUrlService;
 

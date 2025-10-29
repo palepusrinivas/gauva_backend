@@ -22,10 +22,10 @@ public class FirebaseStorageServiceImpl implements StorageService {
   @Value("${app.firebase.storage-bucket:}")
   private String defaultBucket;
 
-  @Value("${app.firebase.documents-gs-path:gs://gauva-15d9a.appspot.com/documents}")
+  @Value("${app.firebase.documents-gs-path:gs://gauva-15d9a.firebasestorage.app/documents}")
   private String documentsGsPath;
 
-  @Value("${app.firebase.logs-gs-path:gs://gauva-15d9a.appspot.com/app_logs}")
+  @Value("${app.firebase.logs-gs-path:gs://gauva-15d9a.firebasestorage.app/app_logs}")
   private String logsGsPath;
 
   private record GsInfo(String bucket, String prefix) {}
@@ -63,12 +63,34 @@ public class FirebaseStorageServiceImpl implements StorageService {
 
     try {
       if (bucketName == null || bucketName.isBlank()) {
-        log.error("Firebase bucket name is not configured. Set app.firebase.storage-bucket or use valid gs path.");
+        log.error("Firebase bucket name is not configured. Set app.firebase.storage-bucket or provide a valid gs:// path in config.");
         throw new RuntimeException("Upload failed");
       }
-      Bucket bucket = StorageClient.getInstance().bucket(bucketName);
+
+      Bucket bucket = null;
+      try {
+        bucket = StorageClient.getInstance().bucket(bucketName);
+      } catch (Exception be) {
+        log.warn("Configured bucket '{}' not accessible. Attempting default FirebaseApp bucket...", bucketName);
+      }
+      if (bucket == null) {
+        try {
+          bucket = StorageClient.getInstance().bucket(); // default app bucket
+          if (bucket != null) {
+            bucketName = bucket.getName();
+            log.warn("Falling back to default Firebase bucket: {}", bucketName);
+          }
+        } catch (Exception de) {
+          // ignore; handled below
+        }
+      }
+      if (bucket == null) {
+        log.error("No Firebase Storage bucket available. Verify that Firebase Storage is enabled and 'app.firebase.storage-bucket' is correct (e.g., <project-id>.appspot.com).");
+        throw new RuntimeException("Upload failed");
+      }
+
       Blob blob = bucket.create(objectPath, data, contentType);
-      String gs = String.format("gs://%s/%s", bucketName, objectPath);
+      String gs = String.format("gs://%s/%s", bucket.getName(), objectPath);
       return gs;
     } catch (Exception e) {
       log.error("Failed to upload to Firebase Storage [bucket={}, object={}]: {}", bucketName, objectPath, e.toString());
