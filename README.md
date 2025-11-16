@@ -105,7 +105,7 @@ spring.data.redis.host=127.0.0.1
 spring.data.redis.port=6379
 
 # CORS
-app.cors.allowed-origins=http://localhost:3000
+app.cors.allowed-origins=http://localhost:3000,https://guava-adminpanel.vercel.app/
 
 # Admin seed
 app.admin.username=admin
@@ -145,7 +145,7 @@ app.razorpay.webhook-secret=whsec_xxx
   java -jar target/ride_fast_backend-0.0.1-SNAPSHOT.jar
   ```
 
-Application will start on `http://localhost:8080` by default.
+Application will start on `https://gauva-b7gaf7bwcwhqa0c6.canadacentral-01.azurewebsites.net` by default.
 
 ## Docker
 
@@ -180,11 +180,11 @@ docker run --name ride-fast-backend \
 Note: Spring will map `APP_*` environment variables to `app.*` properties automatically.
 
 ## API Documentation
-- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
-- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+- Swagger UI: `https://gauva-b7gaf7bwcwhqa0c6.canadacentral-01.azurewebsites.net/swagger-ui/index.html`
+- OpenAPI JSON: `https://gauva-b7gaf7bwcwhqa0c6.canadacentral-01.azurewebsites.net/v3/api-docs`
 
 ## Health and Monitoring
-- Actuator health: `http://localhost:8080/actuator/health`
+- Actuator health: `https://gauva-b7gaf7bwcwhqa0c6.canadacentral-01.azurewebsites.net/actuator/health`
 - Other Actuator endpoints may require auth; configure as needed in security.
 
 ## Development Notes

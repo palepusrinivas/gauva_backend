@@ -22,6 +22,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import com.ridefast.ride_fast_backend.filter.JwtAuthenticationFilter;
 import com.ridefast.ride_fast_backend.service.CustomUserDetailsService;
 import com.ridefast.ride_fast_backend.util.JwtAuthenticationEntryPoint;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.List;
@@ -107,5 +108,21 @@ public class SecurityConfig {
         provider.setUserDetailsService(customUserDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
+    }
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.setAllowedOrigins(List.of(
+                "https://guava-adminpanel-8b3fcdmx7-palepusrinivas-projects.vercel.app/",
+                "http://localhost:3000"
+        ));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }
