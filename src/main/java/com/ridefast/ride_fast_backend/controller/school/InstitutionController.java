@@ -20,27 +20,27 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class InstitutionController {
 
-	private final InstitutionService institutionService;
+    private final InstitutionService institutionService;
     private final InstitutionRepository institutionRepository;
 
-	@PostMapping
-	public ResponseEntity<Institution> create(@RequestBody @Valid CreateInstitutionRequest req) {
-		Institution inst = new Institution();
-		inst.setName(req.getName());
+    @PostMapping
+    public ResponseEntity<Institution> create(@RequestBody @Valid CreateInstitutionRequest req) {
+        Institution inst = new Institution();
+        inst.setName(req.getName());
         inst.setUniqueId(institutionService.generateUniqueId());
-		inst.setPrimaryContactName(req.getPrimaryContactName());
-		inst.setPrimaryContactPhone(req.getPrimaryContactPhone());
-		inst.setEmail(req.getEmail());
-		inst.setGstNumber(req.getGstNumber());
-		Institution saved = institutionService.create(inst);
-		return new ResponseEntity<>(saved, HttpStatus.CREATED);
-	}
+        inst.setPrimaryContactName(req.getPrimaryContactName());
+        inst.setPrimaryContactPhone(req.getPrimaryContactPhone());
+        inst.setEmail(req.getEmail());
+        inst.setGstNumber(req.getGstNumber());
+        Institution saved = institutionService.create(inst);
+        return new ResponseEntity<>(saved, HttpStatus.CREATED);
+    }
 
-	@GetMapping("/{UniqueId}")
-	public ResponseEntity<Institution> get(@PathVariable String  UniqueId) {
-		Optional<Institution> inst = institutionService.findById(UniqueId);
-		return inst.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
-	}
+    @GetMapping("/{UniqueId}")
+    public ResponseEntity<Institution> get(@PathVariable String  UniqueId) {
+        Optional<Institution> inst = institutionService.findById(UniqueId);
+        return inst.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
     @GetMapping("institutes")
     public ResponseEntity<List<Institution>> getAll() {
         List<Institution> inst = institutionRepository.findAll();
@@ -68,15 +68,15 @@ public class InstitutionController {
         return ResponseEntity.noContent().build();
     }
 
-	@Data
-	public static class CreateInstitutionRequest {
-		@NotBlank
-		private String name;
-		private String primaryContactName;
-		private String primaryContactPhone;
-		private String email;
-		private String gstNumber;
-	}
+    @Data
+    public static class CreateInstitutionRequest {
+        @NotBlank
+        private String name;
+        private String primaryContactName;
+        private String primaryContactPhone;
+        private String email;
+        private String gstNumber;
+    }
 }
 
 
