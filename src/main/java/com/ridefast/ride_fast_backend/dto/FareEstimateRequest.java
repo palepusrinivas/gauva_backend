@@ -14,4 +14,7 @@ public class FareEstimateRequest {
   private Double dropLng;
   private String pickupZoneReadableId;
   private String dropZoneReadableId;
+  // optional promotions
+  private String couponCode;
+  private Long userId;
 }

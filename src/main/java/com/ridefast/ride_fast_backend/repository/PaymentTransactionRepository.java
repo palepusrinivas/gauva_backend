@@ -17,9 +17,9 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
 
   Page<PaymentTransaction> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
-  @Query("select coalesce(sum(t.amount),0) from PaymentTransaction t where t.status = :status")
+  @Query("select sum(t.amount) from PaymentTransaction t where t.status = :status")
   BigDecimal sumByStatus(@Param("status") String status);
 
-  @Query("select coalesce(sum(t.amount),0) from PaymentTransaction t where t.status = :status and t.createdAt >= :since")
+  @Query("select sum(t.amount) from PaymentTransaction t where t.status = :status and t.createdAt >= :since")
   BigDecimal sumByStatusSince(@Param("status") String status, @Param("since") LocalDateTime since);
 }

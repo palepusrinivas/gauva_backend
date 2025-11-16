@@ -18,6 +18,9 @@ public class FareEstimateResponse {
   private double cancellationFee;
   private double returnFee;
   private double total;
+  private double discount;
+  private double finalTotal;
+  private String appliedCoupon;
   private ExtraFareStatus extraFareStatus;
   private String extraFareReason;
 }

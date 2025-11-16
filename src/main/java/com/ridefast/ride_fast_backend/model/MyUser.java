@@ -28,6 +28,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "MyUser")
+//@Table(name = "users")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

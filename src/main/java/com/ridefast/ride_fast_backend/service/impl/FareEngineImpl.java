@@ -15,6 +15,7 @@ import com.ridefast.ride_fast_backend.repository.v2.ZoneV2Repository;
 import com.ridefast.ride_fast_backend.repository.v2.VehicleCategoryRepository;
 import com.ridefast.ride_fast_backend.repository.v2.TripFareRepository;
 import com.ridefast.ride_fast_backend.service.FareEngine;
+import com.ridefast.ride_fast_backend.service.promo.CouponService;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class FareEngineImpl implements FareEngine {
   private final ZoneV2Repository zoneRepository;
   private final VehicleCategoryRepository vehicleCategoryRepository;
   private final TripFareRepository tripFareRepository;
+  private final CouponService couponService;
 
   @Override
   public FareEstimateResponse estimate(FareEstimateRequest req) {
@@ -83,6 +85,20 @@ public class FareEngineImpl implements FareEngine {
 
     double total = round2(baseFare + distanceFare + timeFare + cancellationFee + returnFee);
 
+    double discount = 0.0;
+    String appliedCoupon = null;
+    if (req.getCouponCode() != null && !req.getCouponCode().isBlank() && req.getUserId() != null) {
+      try {
+        discount = couponService
+            .computeDiscount(req.getCouponCode(), req.getUserId(), java.math.BigDecimal.valueOf(total))
+            .doubleValue();
+        appliedCoupon = discount > 0 ? req.getCouponCode() : null;
+      } catch (Exception ignored) {
+        // invalid coupon -> treat as no discount
+      }
+    }
+    double finalTotal = round2(Math.max(0.0, total - discount));
+
     return FareEstimateResponse.builder()
         .currency(profile.getCurrency())
         .baseFare(baseFare)
@@ -95,6 +111,9 @@ public class FareEngineImpl implements FareEngine {
         .cancellationFee(cancellationFee)
         .returnFee(returnFee)
         .total(total)
+        .discount(discount)
+        .finalTotal(finalTotal)
+        .appliedCoupon(appliedCoupon)
         .extraFareStatus(extraStatus)
         .extraFareReason(extraReason)
         .build();

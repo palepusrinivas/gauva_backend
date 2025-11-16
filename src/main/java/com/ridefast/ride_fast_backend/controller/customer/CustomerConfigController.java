@@ -119,7 +119,7 @@ public class CustomerConfigController {
     WKTReader reader = new WKTReader(gf);
 
     for (Zone z : zoneRepository.findAll()) {
-      if (z == null || !z.isActive()) continue;
+      if (z == null || z.getActive() == null || !z.getActive()) continue;
       String wkt = z.getPolygonWkt();
       if (wkt == null || wkt.isBlank()) continue;
       try {

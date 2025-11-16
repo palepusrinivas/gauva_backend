@@ -4,6 +4,7 @@ import com.ridefast.ride_fast_backend.model.Zone;
 import com.ridefast.ride_fast_backend.repository.ZoneRepository;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class AdminZonesController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<Zone> get(@PathVariable Long id) {
+  public ResponseEntity<Zone> get(@PathVariable String id) {
     Optional<Zone> z = zoneRepository.findById(id);
     return z.map(ResponseEntity::ok).orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
   }
@@ -41,25 +42,28 @@ public class AdminZonesController {
     if (body.getReadableId() == null || body.getReadableId().isBlank()) {
       return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
+    if (body.getId() == null || body.getId().isBlank()) {
+      body.setId(UUID.randomUUID().toString());
+    }
     Zone saved = zoneRepository.save(body);
     return new ResponseEntity<>(saved, HttpStatus.CREATED);
   }
 
   @PutMapping("/{id}")
-  public ResponseEntity<Zone> update(@PathVariable Long id, @RequestBody Zone body) {
+  public ResponseEntity<Zone> update(@PathVariable String id, @RequestBody Zone body) {
     return zoneRepository.findById(id)
         .map(existing -> {
           if (body.getReadableId() != null) existing.setReadableId(body.getReadableId());
           if (body.getName() != null) existing.setName(body.getName());
           if (body.getPolygonWkt() != null) existing.setPolygonWkt(body.getPolygonWkt());
-          existing.setActive(body.isActive());
+          if (body.getActive() != null) existing.setActive(body.getActive());
           return new ResponseEntity<>(zoneRepository.save(existing), HttpStatus.OK);
         })
         .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<Void> delete(@PathVariable Long id) {
+  public ResponseEntity<Void> delete(@PathVariable String id) {
     if (!zoneRepository.existsById(id)) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     zoneRepository.deleteById(id);
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
