@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-
     steps:
       - uses: actions/checkout@v4
 
@@ -27,8 +26,14 @@ jobs:
           key: m2-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: m2-${{ runner.os }}-
 
+      - name: Verify repo layout
+        run: |
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          ls -la "$GITHUB_WORKSPACE"
+          test -d "$GITHUB_WORKSPACE/ride_fast_backend" || (echo "ride_fast_backend not found" && exit 1)
+
       - name: Build backend (skip tests)
-        working-directory: ride_fast_backend
+        working-directory: ${{ github.workspace }}/ride_fast_backend
         run: mvn -B -DskipTests package
 
       - name: Upload backend artifact
@@ -43,7 +48,6 @@ jobs:
     permissions:
       id-token: write
       contents: read
-
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -63,3 +67,5 @@ jobs:
           app-name: 'gauva'
           slot-name: 'Production'
           package: '*.jar'
+
+
