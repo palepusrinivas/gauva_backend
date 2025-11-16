@@ -24,7 +24,7 @@ public class SchoolDriver {
 
 	private String licenseNumber;
 
-	@Column(columnDefinition = "jsonb")
+	@Lob
 	private String kycDocs;
 
 	private Boolean isActive = Boolean.FALSE;

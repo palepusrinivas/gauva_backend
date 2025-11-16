@@ -24,7 +24,7 @@ public class AlertLog {
 
 	private String type;
 
-	@Column(columnDefinition = "jsonb")
+	@Lob
 	private String payload;
 
 	private LocalDateTime sentAt;
