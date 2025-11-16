@@ -18,7 +18,6 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/v1/institutions")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class InstitutionController {
 
 	private final InstitutionService institutionService;
