@@ -1,5 +1,6 @@
 package com.ridefast.ride_fast_backend.model.school;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,14 +13,16 @@ import java.time.LocalDateTime;
 @Setter
 @Entity
 @Table(name = "buses")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Bus {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@ManyToOne(optional = false, fetch = FetchType.LAZY)
+	@ManyToOne(optional = false, fetch = FetchType.EAGER)
 	@JoinColumn(name = "branch_id")
+	@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "institution"})
 	private Branch branch;
 
 	@Column(nullable = false, length = 64)
