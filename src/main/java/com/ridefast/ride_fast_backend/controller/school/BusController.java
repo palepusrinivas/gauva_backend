@@ -5,6 +5,7 @@ import com.ridefast.ride_fast_backend.model.school.Bus;
 import com.ridefast.ride_fast_backend.model.school.SchoolDriver;
 import com.ridefast.ride_fast_backend.repository.school.BranchRepository;
 import com.ridefast.ride_fast_backend.service.school.BusService;
+import com.ridefast.ride_fast_backend.service.school.BusActivationService;
 import jakarta.validation.Valid;
 import com.ridefast.ride_fast_backend.dto.school.CreateBusRequest;
 import com.ridefast.ride_fast_backend.dto.school.AssignDriverRequest;
@@ -12,18 +13,22 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class BusController {
 
 	private final BranchRepository branchRepository;
 	private final BusService busService;
+	private final BusActivationService busActivationService;
 
 	@PostMapping("/branches/{branchId}/buses")
 	public ResponseEntity<Bus> create(@PathVariable Long branchId, @RequestBody @Valid CreateBusRequest req) {
@@ -78,6 +83,23 @@ public class BusController {
 		if (driver == null) return ResponseEntity.notFound().build();
 		SchoolDriver saved = busService.assignDriver(bus, driver);
 		return ResponseEntity.ok(saved);
+	}
+
+	@PostMapping("/buses/{busId}/activate")
+	public ResponseEntity<?> activateBus(@PathVariable Long busId) {
+		Bus bus = busService.findById(busId).orElse(null);
+		if (bus == null) return ResponseEntity.notFound().build();
+		
+		com.ridefast.ride_fast_backend.model.school.BusActivation activation = busActivationService.activateBus(bus);
+		return ResponseEntity.ok(Map.of(
+			"message", "Bus activated successfully",
+			"busId", busId,
+			"activationId", activation.getId(),
+			"fee", activation.getActivationFee(),
+			"startDate", activation.getStartDate(),
+			"endDate", activation.getEndDate(),
+			"status", activation.getStatus()
+		));
 	}
 
 	

@@ -1,6 +1,7 @@
 package com.ridefast.ride_fast_backend.model.school;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -19,6 +20,7 @@ public class Branch {
 
 	@ManyToOne(optional = false, fetch = FetchType.LAZY)
 	@JoinColumn(name = "institution_id")
+	@JsonIgnore
 	private Institution institution;
 
 	private String name;
