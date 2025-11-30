@@ -16,6 +16,9 @@ import com.ridefast.ride_fast_backend.dto.DriverSignUpRequest;
 import com.ridefast.ride_fast_backend.dto.JwtResponse;
 import com.ridefast.ride_fast_backend.dto.LoginRequest;
 import com.ridefast.ride_fast_backend.dto.OtpLoginRequest;
+import com.ridefast.ride_fast_backend.dto.OtpSendRequest;
+import com.ridefast.ride_fast_backend.dto.OtpSendResponse;
+import com.ridefast.ride_fast_backend.dto.OtpVerifyRequest;
 import com.ridefast.ride_fast_backend.dto.SignUpRequest;
 import com.ridefast.ride_fast_backend.dto.UserResponse;
 import com.ridefast.ride_fast_backend.enums.UserRole;
@@ -174,6 +177,101 @@ public class AuthServiceImpl implements AuthService {
           .build();
     } catch (Exception ex) {
       throw new ResourceNotFoundException("OTP", "verification", ex.getMessage());
+    }
+  }
+
+  @Override
+  public OtpSendResponse sendOtp(OtpSendRequest request) throws ResourceNotFoundException {
+    // Note: Firebase Admin SDK cannot directly send OTP codes.
+    // OTP sending is handled by Firebase Client SDK on the frontend.
+    // This endpoint validates the phone number and returns a response.
+    // The client should use Firebase Auth signInWithPhoneNumber() to actually send the OTP.
+    
+    String phoneNumber = request.getPhoneNumber();
+    
+    // Normalize phone number format (ensure it starts with +)
+    if (!phoneNumber.startsWith("+")) {
+      // If phone doesn't start with +, assume it's a local number and add country code
+      // For now, we'll just validate the format
+      phoneNumber = phoneNumber;
+    }
+    
+    // Validate phone number exists in database (optional - you might want to allow new users)
+    Optional<MyUser> userOptional = userRepository.findByPhone(phoneNumber);
+    boolean userExists = userOptional.isPresent();
+    
+    return OtpSendResponse.builder()
+        .message("OTP will be sent via Firebase. Please use Firebase Client SDK signInWithPhoneNumber() to send OTP.")
+        .success(true)
+        .phoneNumber(phoneNumber)
+        .build();
+  }
+
+  @Override
+  public JwtResponse verifyOtp(OtpVerifyRequest request) throws ResourceNotFoundException {
+    // This method verifies the Firebase ID token (obtained after client-side OTP verification)
+    // and logs in the user
+    try {
+      FirebaseToken decoded = FirebaseAuth.getInstance().verifyIdToken(request.getIdToken());
+      String firebaseUid = decoded.getUid();
+      String phone = null;
+      
+      // Try to get phone from token claims
+      Object claimPhone = decoded.getClaims().get("phone_number");
+      if (claimPhone instanceof String cp && !cp.isBlank()) {
+        phone = cp;
+      } else {
+        // Fallback to user lookup from Firebase
+        try {
+          String fetched = FirebaseAuth.getInstance().getUser(firebaseUid).getPhoneNumber();
+          if (fetched != null && !fetched.isBlank()) {
+            phone = fetched;
+          }
+        } catch (Exception e) {
+          // If we can't fetch from Firebase, continue with null
+        }
+      }
+      
+      if (phone == null || phone.isBlank()) {
+        throw new ResourceNotFoundException("FirebaseToken", "phone", "Phone number not found in Firebase token");
+      }
+      
+      // Find user by phone number
+      Optional<MyUser> optional = userRepository.findByPhone(phone);
+      if (optional.isEmpty()) {
+        throw new ResourceNotFoundException("User", "phone", phone);
+      }
+      
+      MyUser user = optional.get();
+      
+      // Update Firebase UID if not set
+      if (user.getFirebaseUid() == null || user.getFirebaseUid().isBlank()) {
+        user.setFirebaseUid(firebaseUid);
+      }
+      
+      // Mark phone as verified
+      if (user.getPhoneVerifiedAt() == null) {
+        user.setPhoneVerifiedAt(LocalDateTime.now());
+      }
+      
+      userRepository.save(user);
+
+      // Generate JWT tokens
+      String principal = (user.getEmail() != null && !user.getEmail().isBlank()) ? user.getEmail() : user.getPhone();
+      UserDetails userDetails = userDetailsService.loadUserByUsername(principal);
+      RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getUsername(), request.getRole());
+      String jwtToken = jwtTokenHelper.generateToken(userDetails.getUsername());
+      
+      return JwtResponse.builder()
+          .accessToken(jwtToken)
+          .refreshToken(refreshToken.getRefreshToken())
+          .type(request.getRole())
+          .message("Login successfully via OTP: " + userDetails.getUsername())
+          .build();
+    } catch (ResourceNotFoundException e) {
+      throw e;
+    } catch (Exception ex) {
+      throw new ResourceNotFoundException("OTP", "verification", "Failed to verify OTP: " + ex.getMessage());
     }
   }
 

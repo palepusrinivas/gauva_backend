@@ -13,6 +13,9 @@ import com.ridefast.ride_fast_backend.dto.DriverSignUpRequest;
 import com.ridefast.ride_fast_backend.dto.JwtResponse;
 import com.ridefast.ride_fast_backend.dto.LoginRequest;
 import com.ridefast.ride_fast_backend.dto.OtpLoginRequest;
+import com.ridefast.ride_fast_backend.dto.OtpSendRequest;
+import com.ridefast.ride_fast_backend.dto.OtpSendResponse;
+import com.ridefast.ride_fast_backend.dto.OtpVerifyRequest;
 import com.ridefast.ride_fast_backend.dto.SignUpRequest;
 import com.ridefast.ride_fast_backend.dto.UserResponse;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
@@ -49,10 +52,44 @@ public class AuthController {
   }
 
   @PostMapping("/login/otp")
-  public ResponseEntity<JwtResponse> otpLoginHandler(@RequestBody @Valid OtpLoginRequest otpLoginRequest)
+  public ResponseEntity<?> otpLoginHandler(@RequestBody Map<String, Object> request)
       throws ResourceNotFoundException {
-    JwtResponse jwtResponse = authService.loginUserWithOtp(otpLoginRequest);
-    return new ResponseEntity<>(jwtResponse, HttpStatus.OK);
+    // Handle both send OTP and verify OTP requests
+    // If request contains only phoneNumber, it's a send/resend OTP request
+    // If request contains idToken, it's a verify OTP request
+    
+    try {
+      if (request.containsKey("phoneNumber") && !request.containsKey("idToken")) {
+        // Send/Resend OTP request
+        OtpSendRequest otpSendRequest = new OtpSendRequest();
+        otpSendRequest.setPhoneNumber((String) request.get("phoneNumber"));
+        OtpSendResponse response = authService.sendOtp(otpSendRequest);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+      } else if (request.containsKey("idToken")) {
+        // Verify OTP request
+        OtpVerifyRequest otpVerifyRequest = new OtpVerifyRequest();
+        otpVerifyRequest.setIdToken((String) request.get("idToken"));
+        if (request.containsKey("role")) {
+          String roleStr = request.get("role").toString();
+          try {
+            otpVerifyRequest.setRole(UserRole.valueOf(roleStr));
+          } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(Map.of("error", "Invalid role"), HttpStatus.BAD_REQUEST);
+          }
+        } else {
+          // Default to NORMAL_USER if role not provided
+          otpVerifyRequest.setRole(UserRole.NORMAL_USER);
+        }
+        JwtResponse jwtResponse = authService.verifyOtp(otpVerifyRequest);
+        return new ResponseEntity<>(jwtResponse, HttpStatus.OK);
+      } else {
+        return new ResponseEntity<>(Map.of("error", "Invalid request format. Provide either 'phoneNumber' or 'idToken'"), HttpStatus.BAD_REQUEST);
+      }
+    } catch (ResourceNotFoundException e) {
+      throw e;
+    } catch (Exception e) {
+      return new ResponseEntity<>(Map.of("error", e.getMessage()), HttpStatus.BAD_REQUEST);
+    }
   }
 
   @PostMapping("/register/driver")
