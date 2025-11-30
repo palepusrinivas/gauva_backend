@@ -30,4 +30,11 @@ public interface UserRepository extends JpaRepository<MyUser, String> {
 
     @Query("select u from MyUser u where u.email = :identifier or u.phone = :identifier")
     Optional<MyUser> findByEmailOrPhone(@Param("identifier") String identifier);
+
+    // Search methods
+    @Query("select u from MyUser u where " +
+           "(u.fullName IS NOT NULL AND LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%'))) OR " +
+           "(u.email IS NOT NULL AND LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) OR " +
+           "(u.phone IS NOT NULL AND u.phone LIKE CONCAT('%', :search, '%'))")
+    org.springframework.data.domain.Page<MyUser> searchUsers(@Param("search") String search, org.springframework.data.domain.Pageable pageable);
 }

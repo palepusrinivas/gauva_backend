@@ -24,8 +24,14 @@ public class AdminUsersController {
 
   @GetMapping
   public ResponseEntity<Page<MyUser>> list(@RequestParam(defaultValue = "0") int page,
-                                           @RequestParam(defaultValue = "20") int size) {
+                                           @RequestParam(defaultValue = "20") int size,
+                                           @RequestParam(required = false) String search) {
     Pageable pageable = PageRequest.of(page, size);
+    if (search != null && !search.trim().isEmpty()) {
+      // Escape special characters for LIKE query
+      String searchTerm = search.trim().replace("%", "\\%").replace("_", "\\_");
+      return ResponseEntity.ok(userRepository.searchUsers(searchTerm, pageable));
+    }
     return ResponseEntity.ok(userRepository.findAll(pageable));
   }
 
