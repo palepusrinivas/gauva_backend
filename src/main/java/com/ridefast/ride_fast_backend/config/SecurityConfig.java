@@ -113,13 +113,22 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(
-                "https://guava-adminpanel-8b3fcdmx7-palepusrinivas-projects.vercel.app/",
-                "http://localhost:3000"
-        ));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // Use the same configuration as SecurityFilterChain
+        if ("*".equals(allowedOriginsProp)) {
+            config.setAllowedOriginPatterns(List.of("*"));  // Allow all origins (including mobile apps)
+        } else {
+            List<String> origins = Arrays.stream(allowedOriginsProp.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
+            config.setAllowedOrigins(origins);
+        }
+        
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
+        config.setExposedHeaders(List.of("Authorization"));
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
