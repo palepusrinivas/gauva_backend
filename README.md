@@ -1,5 +1,4 @@
-# Ride Fast Backend
-
+Gauva Backend
 A Spring Boot (Java 17) backend for the Ride Fast application. Built with Maven, uses MySQL, Redis, JWT-based security, Flyway migrations, WebSockets for realtime, and integrations including Firebase Storage and Razorpay.
 
 ## Tech Stack
