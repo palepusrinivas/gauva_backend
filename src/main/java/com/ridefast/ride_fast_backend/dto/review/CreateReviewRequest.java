@@ -19,6 +19,8 @@ public class CreateReviewRequest {
     @Max(5)
     private Integer rating;
     private String comment;
+
+    public String getComment() {
+        return comment;
+    }
 }
-
-

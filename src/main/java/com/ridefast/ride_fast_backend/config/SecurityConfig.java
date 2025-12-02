@@ -1,7 +1,7 @@
 package com.ridefast.ride_fast_backend.config;
 
 import org.springframework.beans.factory.annotation.Value;
-import jakarta.servlet.http.HttpServletRequest;
+
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.context.annotation.Bean;
@@ -39,47 +39,20 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins:*}")
     private String allowedOriginsProp;
 
-    private static final String[] permits ={
+    private static final String[] permits = {
             "/api/v1/auth/**",
             "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**", "/home",
             "/actuator/health", "/actuator/info",
             "/api/v1/admin/login"
-
-
 
     };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors
-                        .configurationSource(new CorsConfigurationSource() {
-                            @Override
-                            public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
-                                CorsConfiguration cfg = new CorsConfiguration();
-                                if ("*".equals(allowedOriginsProp)) {
-                                    cfg.setAllowedOriginPatterns(List.of("*"));
-                                } else {
-                                    List<String> origins = Arrays.stream(allowedOriginsProp.split(","))
-                                            .map(String::trim)
-                                            .filter(s -> !s.isEmpty())
-                                            .toList();
-                                    cfg.setAllowedOrigins(origins);
-                                }
-                                cfg.addAllowedMethod("*");
-                                cfg.setAllowCredentials(true);
-                                cfg.addAllowedHeader("*");
-                                cfg.addExposedHeader("Authorization");
-                                cfg.setMaxAge(3600L);
-                                return cfg;
-                            }
-                        }))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests((authorize) -> authorize
-//                        .requestMatchers("/api/v1/auth/**").permitAll()
-//                        .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**", "/home").permitAll()
-//                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers(permits).permitAll()
                         .requestMatchers("/api/superadmin/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -109,17 +82,26 @@ public class SecurityConfig {
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(
-                "https://guava-adminpanel-8b3fcdmx7-palepusrinivas-projects.vercel.app/",
-                "http://localhost:3000"
-        ));
+        if ("*".equals(allowedOriginsProp)) {
+            config.setAllowedOriginPatterns(List.of("*"));
+        } else {
+            List<String> origins = Arrays.stream(allowedOriginsProp.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
+            config.setAllowedOrigins(origins);
+        }
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
+        config.addExposedHeader("Authorization");
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

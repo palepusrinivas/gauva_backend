@@ -17,9 +17,21 @@ import com.ridefast.ride_fast_backend.dto.CustomExceptionResponse;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import com.razorpay.RazorpayException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  @ExceptionHandler(RazorpayException.class)
+  public ResponseEntity<CustomExceptionResponse> handleRazorpayException(RazorpayException ex, WebRequest req) {
+    CustomExceptionResponse response = new CustomExceptionResponse(
+        HttpStatus.BAD_GATEWAY.value(),
+        "Payment Gateway Error",
+        ex.getMessage(),
+        req.getDescription(false),
+        LocalDateTime.now());
+    return new ResponseEntity<>(response, HttpStatus.BAD_GATEWAY);
+  }
 
   @ExceptionHandler(ResourceNotFoundException.class)
   public ResponseEntity<CustomExceptionResponse> resourceNotFoundExceptionHandler(ResourceNotFoundException ex,

@@ -45,6 +45,8 @@ spring:
 app:
   cors:
     allowed-origins: "*"
+  frontend:
+    url: ${APP_FRONTEND_URL:http://localhost:3000}
   razorpay:
     key-id: rzp_test_RVmSxTBdwWng9o
     key-secret: L0Q7LVHqXj1seMQut0D87m5S

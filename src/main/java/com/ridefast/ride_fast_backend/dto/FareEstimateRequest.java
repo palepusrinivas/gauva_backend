@@ -6,6 +6,11 @@ import lombok.Data;
 @Data
 public class FareEstimateRequest {
   private ServiceType serviceType;
+
+  public ServiceType getServiceType() {
+    return serviceType;
+  }
+
   private double distanceKm;
   private double durationMin;
   private Double pickupLat;

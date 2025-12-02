@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.view.RedirectView;
 
 import com.razorpay.Payment;
 import com.razorpay.PaymentLink;
@@ -61,6 +60,9 @@ public class PaymentController {
   @Value("${app.wallet.commission-rate:0.10}")
   private double commissionRate;
 
+  @Value("${app.frontend.url}")
+  private String frontendUrl;
+
   @PostMapping("/payments/{rideId}")
   public ResponseEntity<PaymentLinkResponse> createPaymentLink(@PathVariable("rideId") Long rideId,
       @RequestHeader("Authorization") String jwtToken) throws RazorpayException, ResourceNotFoundException {
@@ -73,8 +75,10 @@ public class PaymentController {
 
       java.util.Map<String, Object> notes = new java.util.HashMap<>();
       notes.put("ride_id", ride.getId());
-      if (ride.getDriver() != null) notes.put("driver_id", ride.getDriver().getId());
-      if (ride.getUser() != null) notes.put("user_id", ride.getUser().getId());
+      if (ride.getDriver() != null)
+        notes.put("driver_id", ride.getDriver().getId());
+      if (ride.getUser() != null)
+        notes.put("user_id", ride.getUser().getId());
       paymentLinkRequest.put("notes", notes);
 
       java.util.Map<String, Object> customer = new java.util.HashMap<>();
@@ -90,7 +94,7 @@ public class PaymentController {
 
       paymentLinkRequest.put("reminder_enable", Boolean.TRUE);
 
-      paymentLinkRequest.put("callback_url", "http://localhost:3000/ride/" + ride.getId() + "/payment/success");
+      paymentLinkRequest.put("callback_url", frontendUrl + "/ride/" + ride.getId() + "/payment/success");
       paymentLinkRequest.put("callback_method", "get");
       PaymentLink payment = razorpayClient.paymentLink.create(paymentLinkRequest);
 
@@ -117,7 +121,7 @@ public class PaymentController {
     try {
 
       Payment payment = razorpay.payments.fetch(paymentId);
-        log.debug("Payment fetched status={}", (Object) payment.get("status"));
+      log.debug("Payment fetched status={}", (Object) payment.get("status"));
 
       if (payment.get("status").equals("captured")) {
         log.debug("Payment captured for rideId={}", ride.getId());
@@ -134,7 +138,7 @@ public class PaymentController {
 
     } catch (Exception e) {
       log.warn("Payment redirect handling failed: {}", e.getMessage());
-      new RedirectView("http://localhost:3000/payment/failed");
+      // new RedirectView(frontendUrl + "/payment/failed"); // This was doing nothing
       throw new RazorpayException(e.getMessage());
     }
 
@@ -153,8 +157,10 @@ public class PaymentController {
     req.put("description", "Trip " + ride.getId());
     java.util.Map<String, Object> qrNotes = new java.util.HashMap<>();
     qrNotes.put("ride_id", ride.getId());
-    if (ride.getDriver() != null) qrNotes.put("driver_id", ride.getDriver().getId());
-    if (ride.getUser() != null) qrNotes.put("user_id", ride.getUser().getId());
+    if (ride.getDriver() != null)
+      qrNotes.put("driver_id", ride.getDriver().getId());
+    if (ride.getUser() != null)
+      qrNotes.put("user_id", ride.getUser().getId());
     req.put("notes", qrNotes);
 
     QrCode qr = client.qrCode.create(req);
@@ -168,7 +174,7 @@ public class PaymentController {
 
   @PostMapping("/webhooks/razorpay")
   public ResponseEntity<Void> handleWebhook(@RequestHeader("X-Razorpay-Signature") String signature,
-                                            @RequestBody String payload) {
+      @RequestBody String payload) {
     try {
       Utils.verifyWebhookSignature(payload, signature, razorpayWebhookSecret);
       JSONObject event = new JSONObject(payload);
@@ -183,23 +189,27 @@ public class PaymentController {
         if (payloadObj.has("payment_link")) {
           JSONObject obj = payloadObj.getJSONObject("payment_link").getJSONObject("entity");
           JSONObject notes = obj.optJSONObject("notes");
-          if (notes != null && notes.has("ride_id")) rideId = notes.getLong("ride_id");
+          if (notes != null && notes.has("ride_id"))
+            rideId = notes.getLong("ride_id");
           amount = obj.optInt("amount_paid", 0);
         } else if (payloadObj.has("payment")) {
           JSONObject obj = payloadObj.getJSONObject("payment").getJSONObject("entity");
           JSONObject notes = obj.optJSONObject("notes");
-          if (notes != null && notes.has("ride_id")) rideId = notes.getLong("ride_id");
+          if (notes != null && notes.has("ride_id"))
+            rideId = notes.getLong("ride_id");
           amount = obj.optInt("amount", 0);
         } else if (payloadObj.has("qr_code")) {
           JSONObject obj = payloadObj.getJSONObject("qr_code").getJSONObject("entity");
           JSONObject notes = obj.optJSONObject("notes");
-          if (notes != null && notes.has("ride_id")) rideId = notes.getLong("ride_id");
+          if (notes != null && notes.has("ride_id"))
+            rideId = notes.getLong("ride_id");
         }
       }
 
       if (rideId != null) {
         Ride ride = rideService.findRideById(rideId);
-        if (ride.getPaymentDetails() == null) ride.setPaymentDetails(new PaymentDetails());
+        if (ride.getPaymentDetails() == null)
+          ride.setPaymentDetails(new PaymentDetails());
         ride.getPaymentDetails().setPaymentStatus(PaymentStatus.COMPLETED);
         rideRepository.save(ride);
 
@@ -215,7 +225,8 @@ public class PaymentController {
           java.util.Map<String, String> data = new java.util.HashMap<>();
           data.put("ride_id", String.valueOf(ride.getId()));
           data.put("event", "payment_success");
-          pushNotificationService.sendToToken(ride.getUser().getFcmToken(), "Payment received", "Your ride payment was successful", data);
+          pushNotificationService.sendToToken(ride.getUser().getFcmToken(), "Payment received",
+              "Your ride payment was successful", data);
         }
       }
 
