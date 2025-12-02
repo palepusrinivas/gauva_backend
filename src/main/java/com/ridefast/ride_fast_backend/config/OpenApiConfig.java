@@ -17,8 +17,8 @@ public class OpenApiConfig {
   public OpenAPI api() {
     return new OpenAPI()
         .info(new Info()
-            .title("Ride Fast API")
-            .description("Ride Fast Backend APIs")
+            .title("Gauva Backend API")
+            .description("Gauva Backend APIs")
             .version("v1"))
         .components(new Components()
             .addSecuritySchemes(SECURITY_SCHEME_NAME, new SecurityScheme()
