@@ -53,6 +53,9 @@ app:
     webhook-secret: tY@r77M@dDdmc3N
   wallet:
     commission-rate: 0.10
+    topup:
+      min-amount: 10
+      max-amount: 50000
   logging:
     log-path: logs
     upload-enabled: true

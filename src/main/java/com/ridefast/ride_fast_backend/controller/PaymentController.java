@@ -24,6 +24,12 @@ import com.ridefast.ride_fast_backend.service.RideService;
 import com.ridefast.ride_fast_backend.service.UserService;
 import com.ridefast.ride_fast_backend.service.WalletService;
 import com.ridefast.ride_fast_backend.service.notification.PushNotificationService;
+import com.ridefast.ride_fast_backend.dto.WalletTopUpRequest;
+import com.ridefast.ride_fast_backend.dto.WalletTopUpResponse;
+import com.ridefast.ride_fast_backend.model.MyUser;
+import com.ridefast.ride_fast_backend.model.PaymentTransaction;
+import com.ridefast.ride_fast_backend.repository.PaymentTransactionRepository;
+import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
 
@@ -47,6 +53,13 @@ public class PaymentController {
   private final RideRepository rideRepository;
   private final WalletService walletService;
   private final PushNotificationService pushNotificationService;
+  private final PaymentTransactionRepository paymentTransactionRepository;
+
+  @Value("${app.wallet.topup.min-amount:10}")
+  private int minTopUpAmount;
+
+  @Value("${app.wallet.topup.max-amount:50000}")
+  private int maxTopUpAmount;
 
   @Value("${app.razorpay.key-id}")
   private String razorpayKeyId;
@@ -62,6 +75,80 @@ public class PaymentController {
 
   @Value("${app.frontend.url}")
   private String frontendUrl;
+
+  @PostMapping("/payments/wallet/topup")
+  public ResponseEntity<WalletTopUpResponse> createWalletTopUp(@Valid @RequestBody WalletTopUpRequest request,
+      @RequestHeader("Authorization") String jwtToken) throws Exception {
+
+    if (request.getAmount().intValue() < minTopUpAmount || request.getAmount().intValue() > maxTopUpAmount) {
+      throw new IllegalArgumentException("Amount must be between " + minTopUpAmount + " and " + maxTopUpAmount);
+    }
+
+    MyUser user = userService.getRequestedUserProfile(jwtToken);
+
+    // Create initial transaction record
+    PaymentTransaction tx = PaymentTransaction.builder()
+        .userId(user.getId())
+        .amount(request.getAmount())
+        .currency("INR")
+        .provider("RAZORPAY")
+        .type("WALLET_TOPUP")
+        .status("INITIATED")
+        .notes("Wallet top-up initiated")
+        .build();
+
+    tx = paymentTransactionRepository.save(tx);
+
+    RazorpayClient razorpayClient = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
+
+    JSONObject paymentLinkRequest = new JSONObject();
+    paymentLinkRequest.put("amount", request.getAmount().multiply(new java.math.BigDecimal("100")).intValue());
+    paymentLinkRequest.put("currency", "INR");
+    paymentLinkRequest.put("description", "Wallet Top-up");
+
+    JSONObject notes = new JSONObject();
+    notes.put("type", "wallet_topup");
+    notes.put("user_id", user.getId());
+    notes.put("owner_type", request.getOwnerType().toString());
+    notes.put("transaction_id", tx.getId());
+    paymentLinkRequest.put("notes", notes);
+
+    JSONObject customer = new JSONObject();
+    customer.put("name", user.getFullName());
+    customer.put("contact", user.getPhone());
+    customer.put("email", user.getEmail());
+    paymentLinkRequest.put("customer", customer);
+
+    paymentLinkRequest.put("callback_url", frontendUrl + "/wallet/payment/success");
+    paymentLinkRequest.put("callback_method", "get");
+
+    PaymentLink payment = razorpayClient.paymentLink.create(paymentLinkRequest);
+
+    String paymentLinkId = payment.get("id");
+    String paymentLinkUrl = payment.get("short_url");
+
+    // Update transaction with payment link details
+    tx.setProviderPaymentLinkId(paymentLinkId);
+    tx.setStatus("PENDING");
+    paymentTransactionRepository.save(tx);
+
+    WalletTopUpResponse response = WalletTopUpResponse.builder()
+        .paymentLinkUrl(paymentLinkUrl)
+        .paymentLinkId(paymentLinkId)
+        .amount(request.getAmount())
+        .transactionId(tx.getId())
+        .status("PENDING")
+        .build();
+
+    return new ResponseEntity<>(response, HttpStatus.CREATED);
+  }
+
+  @GetMapping("/payments/wallet/verify/{transactionId}")
+  public ResponseEntity<PaymentTransaction> verifyPayment(@PathVariable Long transactionId) {
+    return paymentTransactionRepository.findById(transactionId)
+        .map(tx -> new ResponseEntity<>(tx, HttpStatus.OK))
+        .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+  }
 
   @PostMapping("/payments/{rideId}")
   public ResponseEntity<PaymentLinkResponse> createPaymentLink(@PathVariable("rideId") Long rideId,
@@ -184,29 +271,76 @@ public class PaymentController {
       JSONObject payloadObj = event.optJSONObject("payload");
 
       Long rideId = null;
+      String type = null;
+      String userId = null;
+      Long transactionId = null;
+      String paymentId = null;
       Integer amount = null;
+
       if (payloadObj != null) {
+        JSONObject entity = null;
         if (payloadObj.has("payment_link")) {
-          JSONObject obj = payloadObj.getJSONObject("payment_link").getJSONObject("entity");
-          JSONObject notes = obj.optJSONObject("notes");
-          if (notes != null && notes.has("ride_id"))
-            rideId = notes.getLong("ride_id");
-          amount = obj.optInt("amount_paid", 0);
+          entity = payloadObj.getJSONObject("payment_link").getJSONObject("entity");
+          amount = entity.optInt("amount_paid", 0);
         } else if (payloadObj.has("payment")) {
-          JSONObject obj = payloadObj.getJSONObject("payment").getJSONObject("entity");
-          JSONObject notes = obj.optJSONObject("notes");
-          if (notes != null && notes.has("ride_id"))
-            rideId = notes.getLong("ride_id");
-          amount = obj.optInt("amount", 0);
+          entity = payloadObj.getJSONObject("payment").getJSONObject("entity");
+          amount = entity.optInt("amount", 0);
         } else if (payloadObj.has("qr_code")) {
-          JSONObject obj = payloadObj.getJSONObject("qr_code").getJSONObject("entity");
-          JSONObject notes = obj.optJSONObject("notes");
-          if (notes != null && notes.has("ride_id"))
-            rideId = notes.getLong("ride_id");
+          entity = payloadObj.getJSONObject("qr_code").getJSONObject("entity");
+        }
+
+        if (entity != null) {
+          paymentId = entity.optString("id");
+          JSONObject notes = entity.optJSONObject("notes");
+          if (notes != null) {
+            if (notes.has("ride_id"))
+              rideId = notes.getLong("ride_id");
+            if (notes.has("type"))
+              type = notes.getString("type");
+            if (notes.has("user_id"))
+              userId = notes.getString("user_id");
+            if (notes.has("transaction_id"))
+              transactionId = notes.getLong("transaction_id");
+          }
         }
       }
 
-      if (rideId != null) {
+      if ("wallet_topup".equals(type) && userId != null && amount != null) {
+        java.math.BigDecimal topUpAmount = java.math.BigDecimal.valueOf(amount)
+            .divide(java.math.BigDecimal.valueOf(100));
+
+        // Credit the wallet
+        walletService.credit(WalletOwnerType.USER, userId, topUpAmount, "TOPUP", paymentId,
+            "Wallet Top-up via Razorpay");
+
+        // Update transaction status if we have the ID
+        if (transactionId != null) {
+          String finalPaymentId = paymentId;
+          paymentTransactionRepository.findById(transactionId).ifPresent(tx -> {
+            tx.setStatus("SUCCESS");
+            tx.setProviderPaymentId(finalPaymentId);
+            paymentTransactionRepository.save(tx);
+          });
+        }
+
+        // Send notification
+        // We need to fetch user to get FCM token.
+        // Since we don't have user object here easily without fetching, we can try to
+        // fetch it.
+        try {
+          MyUser user = userService.getUserById(userId);
+          if (user.getFcmToken() != null && !user.getFcmToken().isBlank()) {
+            java.util.Map<String, String> data = new java.util.HashMap<>();
+            data.put("event", "wallet_topup_success");
+            data.put("amount", topUpAmount.toString());
+            pushNotificationService.sendToToken(user.getFcmToken(), "Wallet Top-up Successful",
+                "Your wallet has been credited with ₹" + topUpAmount, data);
+          }
+        } catch (Exception e) {
+          log.warn("Failed to send wallet top-up notification: {}", e.getMessage());
+        }
+
+      } else if (rideId != null) {
         Ride ride = rideService.findRideById(rideId);
         if (ride.getPaymentDetails() == null)
           ride.setPaymentDetails(new PaymentDetails());

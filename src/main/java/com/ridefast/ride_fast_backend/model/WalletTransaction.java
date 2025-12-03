@@ -29,11 +29,13 @@ public class WalletTransaction {
   @Column(nullable = false)
   private BigDecimal amount;
 
+  @Builder.Default
   private String currency = "INR";
 
   private String referenceType; // RIDE / PAYOUT / TOPUP
   private String referenceId;
 
+  @Builder.Default
   private String status = "SUCCESS"; // PENDING/SUCCESS/FAILED (simple for now)
   private String notes;
 

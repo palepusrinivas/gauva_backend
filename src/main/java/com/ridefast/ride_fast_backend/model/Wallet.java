@@ -28,9 +28,11 @@ public class Wallet {
   private String ownerId;
 
   @Column(nullable = false)
+  @Builder.Default
   private BigDecimal balance = BigDecimal.ZERO;
 
   @Column(nullable = false)
+  @Builder.Default
   private String currency = "INR";
 
   private LocalDateTime createdAt;
