@@ -52,7 +52,9 @@ public class SecurityConfig {
             "/home",
             "/actuator/health", 
             "/actuator/info",
-            "/api/v1/admin/login"
+            "/api/v1/admin/login",
+            // Public banners for mobile app
+            "/api/v1/banners/**"
     };
 
     @Bean

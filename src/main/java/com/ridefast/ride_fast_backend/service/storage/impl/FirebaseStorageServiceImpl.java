@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class FirebaseStorageServiceImpl implements StorageService {
@@ -106,6 +107,29 @@ public class FirebaseStorageServiceImpl implements StorageService {
   @Override
   public String uploadAppLog(byte[] data, String contentType, String objectName) {
     return put(data, contentType, objectName, logsGsPath, logMaxBytes);
+  }
+
+  @Override
+  public String uploadFile(MultipartFile file, String objectName) {
+    try {
+      if (file == null || file.isEmpty()) {
+        throw new IllegalArgumentException("File is empty");
+      }
+      byte[] data = file.getBytes();
+      String contentType = file.getContentType();
+      // Use documents path for general file uploads, with 5MB limit
+      String gsPath = put(data, contentType, objectName, documentsGsPath, 5 * 1024 * 1024);
+      
+      // Return a public URL format
+      // Firebase Storage URLs: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?alt=media
+      GsInfo info = parseGs(gsPath);
+      String encodedPath = java.net.URLEncoder.encode(info.prefix() + objectName, "UTF-8");
+      return String.format("https://firebasestorage.googleapis.com/v0/b/%s/o/%s?alt=media", 
+          info.bucket(), encodedPath);
+    } catch (Exception e) {
+      log.error("Failed to upload file: {}", e.getMessage());
+      throw new RuntimeException("File upload failed: " + e.getMessage());
+    }
   }
 
   @Override
