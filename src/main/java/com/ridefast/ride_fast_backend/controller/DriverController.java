@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ridefast.ride_fast_backend.dto.DriverResponse;
 import com.ridefast.ride_fast_backend.dto.RideDto;
 import com.ridefast.ride_fast_backend.dto.UpdateBankDetailsRequest;
+import com.ridefast.ride_fast_backend.dto.UpdateDriverProfileRequest;
 import com.ridefast.ride_fast_backend.enums.RideStatus;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.Driver;
@@ -38,6 +39,15 @@ public class DriverController {
       @RequestHeader("Authorization") String jwtToken) throws ResourceNotFoundException {
     Driver driver = driverService.getRequestedDriverProfile(jwtToken);
     DriverResponse response = modelMapper.map(driver, DriverResponse.class);
+    return new ResponseEntity<>(response, HttpStatus.OK);
+  }
+
+  @PutMapping("/profile")
+  public ResponseEntity<DriverResponse> updateDriverProfile(
+      @RequestHeader("Authorization") String jwtToken,
+      @RequestBody UpdateDriverProfileRequest request) throws ResourceNotFoundException {
+    Driver updatedDriver = driverService.updateProfile(jwtToken, request);
+    DriverResponse response = modelMapper.map(updatedDriver, DriverResponse.class);
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 

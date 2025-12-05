@@ -5,6 +5,7 @@ import java.util.List;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import com.ridefast.ride_fast_backend.dto.UpdateUserProfileRequest;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.exception.UserException;
 import com.ridefast.ride_fast_backend.model.Ride;
@@ -54,6 +55,35 @@ public class UserServiceImpl implements UserService {
   @Override
   public List<Ride> getUserRequestedRide(String userId) throws ResourceNotFoundException {
     return usereRepository.getRequestedRides(userId);
+  }
+
+  @Override
+  public MyUser updateProfile(String jwtToken, UpdateUserProfileRequest request) throws ResourceNotFoundException, UserException {
+    MyUser user = getRequestedUserProfile(jwtToken);
+    
+    if (request.getFullName() != null && !request.getFullName().isBlank()) {
+      user.setFullName(request.getFullName());
+    }
+    if (request.getFirstName() != null && !request.getFirstName().isBlank()) {
+      user.setFirstName(request.getFirstName());
+    }
+    if (request.getLastName() != null && !request.getLastName().isBlank()) {
+      user.setLastName(request.getLastName());
+    }
+    if (request.getEmail() != null && !request.getEmail().isBlank()) {
+      user.setEmail(request.getEmail());
+    }
+    if (request.getPhone() != null && !request.getPhone().isBlank()) {
+      user.setPhone(request.getPhone());
+    }
+    if (request.getProfileImage() != null && !request.getProfileImage().isBlank()) {
+      user.setProfileImage(request.getProfileImage());
+    }
+    if (request.getCurrentLanguageKey() != null && !request.getCurrentLanguageKey().isBlank()) {
+      user.setCurrentLanguageKey(request.getCurrentLanguageKey());
+    }
+    
+    return usereRepository.save(user);
   }
 
 }

@@ -7,11 +7,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ridefast.ride_fast_backend.dto.RideDto;
+import com.ridefast.ride_fast_backend.dto.UpdateUserProfileRequest;
 import com.ridefast.ride_fast_backend.dto.UserResponse;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.exception.UserException;
@@ -41,6 +44,15 @@ public class UserController {
       throws ResourceNotFoundException, UserException {
     MyUser user = userService.getRequestedUserProfile(jwtToken);
     UserResponse response = modelMapper.map(user, UserResponse.class);
+    return new ResponseEntity<>(response, HttpStatus.OK);
+  }
+
+  @PutMapping("/profile")
+  public ResponseEntity<UserResponse> updateUserProfile(
+      @RequestHeader("Authorization") String jwtToken,
+      @RequestBody UpdateUserProfileRequest request) throws ResourceNotFoundException, UserException {
+    MyUser updatedUser = userService.updateProfile(jwtToken, request);
+    UserResponse response = modelMapper.map(updatedUser, UserResponse.class);
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 

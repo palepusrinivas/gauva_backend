@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.ridefast.ride_fast_backend.dto.DriverSignUpRequest;
 import com.ridefast.ride_fast_backend.dto.UpdateBankDetailsRequest;
+import com.ridefast.ride_fast_backend.dto.UpdateDriverProfileRequest;
 import com.ridefast.ride_fast_backend.enums.RideStatus;
 import com.ridefast.ride_fast_backend.enums.UserRole;
 import com.ridefast.ride_fast_backend.enums.VerificationStatus;
@@ -153,6 +154,25 @@ public class DriverServiceImpl implements DriverService {
     driver.setBankVerificationStatus(VerificationStatus.PENDING);
     driver.setBankVerificationNotes(null);
     driver.setBankVerifiedAt(null);
+    return driverRepository.save(driver);
+  }
+
+  @Override
+  public Driver updateProfile(String jwtToken, UpdateDriverProfileRequest request) throws ResourceNotFoundException {
+    String email = tokenHelper.getUsernameFromToken(jwtToken);
+    Driver driver = driverRepository.findByEmail(email)
+        .orElseThrow(() -> new ResourceNotFoundException("Driver", "username", email));
+    
+    if (request.getName() != null && !request.getName().isBlank()) {
+      driver.setName(request.getName());
+    }
+    if (request.getEmail() != null && !request.getEmail().isBlank()) {
+      driver.setEmail(request.getEmail());
+    }
+    if (request.getMobile() != null && !request.getMobile().isBlank()) {
+      driver.setMobile(request.getMobile());
+    }
+    
     return driverRepository.save(driver);
   }
 
