@@ -23,10 +23,10 @@ public class FirebaseStorageServiceImpl implements StorageService {
   @Value("${app.firebase.storage-bucket:}")
   private String defaultBucket;
 
-  @Value("${app.firebase.documents-gs-path:gs://gauva-15d9a.firebasestorage.app/documents}")
+  @Value("${app.firebase.documents-gs-path:gs://gauva-15d9a.appspot.com/documents}")
   private String documentsGsPath;
 
-  @Value("${app.firebase.logs-gs-path:gs://gauva-15d9a.firebasestorage.app/app_logs}")
+  @Value("${app.firebase.logs-gs-path:gs://gauva-15d9a.appspot.com/app_logs}")
   private String logsGsPath;
 
   private record GsInfo(String bucket, String prefix) {}

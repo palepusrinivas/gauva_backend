@@ -37,7 +37,7 @@ public class RideController {
   private final ModelMapper modelMapper;
 
   @PostMapping("/request")
-  @PreAuthorize("hasRole('USER')")
+  @PreAuthorize("hasRole('NORMAL_USER')")
   public ResponseEntity<RideDto> userRideRequestHandler(@RequestBody RideRequest request,
       @RequestHeader("Authorization") String jwtToken) throws ResourceNotFoundException, UserException {
     MyUser user = userService.getRequestedUserProfile(jwtToken);
