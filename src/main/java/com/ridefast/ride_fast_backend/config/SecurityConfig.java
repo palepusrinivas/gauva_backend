@@ -54,7 +54,9 @@ public class SecurityConfig {
             "/actuator/info",
             "/api/v1/admin/login",
             // Public banners for mobile app
-            "/api/v1/banners/**"
+            "/api/v1/banners/**",
+            // Public services (car, bike, auto) for mobile app
+            "/api/v1/services/**"
     };
 
     @Bean
