@@ -50,7 +50,7 @@ app:
   razorpay:
     key-id: rzp_test_RVmSxTBdwWng9o
     key-secret: L0Q7LVHqXj1seMQut0D87m5S
-    webhook-secret: tY@r77M@dDdmc3N
+    webhook-secret: razorpay@gauva
   wallet:
     commission-rate: 0.10
     topup:
