@@ -2,21 +2,29 @@ package com.ridefast.ride_fast_backend.service.intercity;
 
 import com.ridefast.ride_fast_backend.dto.intercity.IntercityAlternativeDTO;
 import com.ridefast.ride_fast_backend.dto.intercity.IntercityVehicleOptionDTO;
+import com.ridefast.ride_fast_backend.dto.intercity.IntercityVehicleSearchRequest;
 import com.ridefast.ride_fast_backend.enums.IntercityVehicleType;
 import com.ridefast.ride_fast_backend.model.intercity.IntercityRoute;
 import com.ridefast.ride_fast_backend.model.intercity.IntercityTrip;
 import com.ridefast.ride_fast_backend.model.intercity.IntercityVehicleConfig;
+import com.ridefast.ride_fast_backend.repository.intercity.IntercityRouteRepository;
+import com.ridefast.ride_fast_backend.repository.intercity.IntercityTripRepository;
 import com.ridefast.ride_fast_backend.repository.intercity.IntercityVehicleConfigRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import com.ridefast.ride_fast_backend.enums.IntercityTripStatus;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Service for intercity pricing calculations
@@ -28,6 +36,104 @@ import java.util.Optional;
 public class IntercityPricingService {
     
     private final IntercityVehicleConfigRepository vehicleConfigRepository;
+    private final IntercityRouteRepository routeRepository;
+    private final IntercityTripRepository tripRepository;
+    
+    /**
+     * Search vehicle options based on search criteria
+     */
+    public List<IntercityVehicleOptionDTO> searchVehicleOptions(IntercityVehicleSearchRequest request) {
+        IntercityRoute route = null;
+        
+        // Find route by ID if provided
+        if (request.getRouteId() != null && request.getRouteId() > 0) {
+            route = routeRepository.findById(request.getRouteId()).orElse(null);
+        }
+        
+        // Get base vehicle options
+        List<IntercityVehicleOptionDTO> options = getVehicleOptions(route);
+        
+        // Filter by vehicle type if specified
+        if (request.getVehicleType() != null) {
+            options = options.stream()
+                .filter(opt -> opt.getVehicleType() == request.getVehicleType())
+                .collect(Collectors.toList());
+        }
+        
+        // Filter by seats needed
+        if (request.getSeatsNeeded() != null && request.getSeatsNeeded() > 0) {
+            options = options.stream()
+                .filter(opt -> opt.getAvailableSeats() >= request.getSeatsNeeded())
+                .collect(Collectors.toList());
+        }
+        
+        // Enrich with route information
+        if (route != null) {
+            final IntercityRoute finalRoute = route;
+            options.forEach(opt -> {
+                opt.setRouteId(finalRoute.getId());
+                opt.setDistanceKm(finalRoute.getDistanceKm());
+                opt.setEstimatedDurationMinutes(finalRoute.getEstimatedDurationMinutes());
+            });
+        }
+        
+        // Set estimated departure time
+        LocalDateTime departure = request.getPreferredDeparture() != null 
+            ? request.getPreferredDeparture() 
+            : LocalDateTime.now().plusHours(1);
+        options.forEach(opt -> opt.setEstimatedDeparture(departure));
+        
+        // Check for existing trips with available seats
+        enrichWithExistingTrips(options, request);
+        
+        return options;
+    }
+    
+    /**
+     * Enrich vehicle options with existing trip seat availability
+     */
+    private void enrichWithExistingTrips(List<IntercityVehicleOptionDTO> options, IntercityVehicleSearchRequest request) {
+        List<IntercityTripStatus> poolingStatuses = Arrays.asList(
+            IntercityTripStatus.FILLING,
+            IntercityTripStatus.MIN_REACHED,
+            IntercityTripStatus.PENDING
+        );
+        
+        for (IntercityVehicleOptionDTO option : options) {
+            // Find existing trips for this vehicle type that have seats
+            List<IntercityTrip> existingTrips = tripRepository.findAvailableTripsForPooling(
+                poolingStatuses,
+                option.getVehicleType(),
+                LocalDateTime.now()
+            );
+            
+            if (!existingTrips.isEmpty()) {
+                // Use the trip with most seats booked (likely to depart sooner)
+                IntercityTrip bestTrip = existingTrips.stream()
+                    .max(Comparator.comparingInt(IntercityTrip::getSeatsBooked))
+                    .orElse(existingTrips.get(0));
+                
+                option.setSeatsBooked(bestTrip.getSeatsBooked());
+                option.setAvailableSeats(bestTrip.getAvailableSeats());
+                option.setSeatsRemaining(bestTrip.getAvailableSeats());
+                option.setSeatsTotal(bestTrip.getTotalSeats());
+                option.setCurrentPerHeadPrice(calculatePerHeadPrice(bestTrip));
+                option.setEstimatedDeparture(bestTrip.getScheduledDeparture());
+                
+                // Calculate wait time
+                if (bestTrip.getScheduledDeparture() != null) {
+                    long minutes = java.time.Duration.between(LocalDateTime.now(), bestTrip.getScheduledDeparture()).toMinutes();
+                    option.setEstimatedWaitMinutes((int) Math.max(0, minutes));
+                }
+            } else {
+                // No existing trips, set default values
+                option.setSeatsBooked(0);
+                option.setSeatsRemaining(option.getMaxSeats());
+                option.setSeatsTotal(option.getMaxSeats());
+                option.setEstimatedWaitMinutes(15); // Default wait time
+            }
+        }
+    }
     
     /**
      * Get all vehicle options with pricing
@@ -53,9 +159,14 @@ public class IntercityPricingService {
                 .currentPerHeadPrice(adjustedPrice) // Full price initially
                 .availableSeats(config.getMaxSeats())
                 .seatsBooked(0)
+                .seatsRemaining(config.getMaxSeats())
+                .seatsTotal(config.getMaxSeats())
                 .targetCustomer(config.getTargetCustomer())
                 .recommendationTag(config.getRecommendationTag())
                 .isRecommended(false)
+                .routeId(route != null ? route.getId() : null)
+                .distanceKm(route != null ? route.getDistanceKm() : null)
+                .estimatedDurationMinutes(route != null ? route.getEstimatedDurationMinutes() : null)
                 .build();
             
             options.add(option);

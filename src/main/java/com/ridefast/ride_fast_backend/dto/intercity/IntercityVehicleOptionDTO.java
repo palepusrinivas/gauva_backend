@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * DTO for displaying vehicle options to customers
@@ -39,6 +40,12 @@ public class IntercityVehicleOptionDTO {
     /** Seats already booked */
     private Integer seatsBooked;
     
+    /** Seats remaining (same as availableSeats for clarity) */
+    private Integer seatsRemaining;
+    
+    /** Total seats in vehicle */
+    private Integer seatsTotal;
+    
     /** Target customer description */
     private String targetCustomer;
     
@@ -50,5 +57,17 @@ public class IntercityVehicleOptionDTO {
     
     /** Estimated wait time in minutes */
     private Integer estimatedWaitMinutes;
+    
+    /** Route ID if applicable */
+    private Long routeId;
+    
+    /** Estimated departure time */
+    private LocalDateTime estimatedDeparture;
+    
+    /** Distance in kilometers */
+    private Double distanceKm;
+    
+    /** Estimated duration in minutes */
+    private Integer estimatedDurationMinutes;
 }
 

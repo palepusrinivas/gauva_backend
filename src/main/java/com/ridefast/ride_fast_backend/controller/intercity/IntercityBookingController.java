@@ -45,15 +45,25 @@ public class IntercityBookingController {
     }
     
     /**
-     * Get all vehicle options with pricing
+     * Search vehicle options with pricing based on search criteria
      * 
-     * GET /api/customer/intercity/vehicles
+     * POST /api/customer/intercity/vehicles
      */
-    @GetMapping("/vehicles")
-    public ResponseEntity<List<IntercityVehicleOptionDTO>> getVehicleOptions(
-            @RequestParam(required = false) Long routeId
+    @PostMapping("/vehicles")
+    public ResponseEntity<List<IntercityVehicleOptionDTO>> searchVehicleOptions(
+            @RequestBody IntercityVehicleSearchRequest request
     ) {
-        // Route would be fetched from repository if routeId provided
+        List<IntercityVehicleOptionDTO> options = pricingService.searchVehicleOptions(request);
+        return ResponseEntity.ok(options);
+    }
+    
+    /**
+     * Get all vehicle options (simple GET - for backward compatibility)
+     * 
+     * GET /api/customer/intercity/vehicles/all
+     */
+    @GetMapping("/vehicles/all")
+    public ResponseEntity<List<IntercityVehicleOptionDTO>> getAllVehicleOptions() {
         List<IntercityVehicleOptionDTO> options = pricingService.getVehicleOptions(null);
         return ResponseEntity.ok(options);
     }
