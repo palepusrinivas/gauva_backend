@@ -27,8 +27,9 @@ public interface DriverRepository extends JpaRepository<Driver, Long> {
   @Query("select r from Ride r where r.status=COMPLETED and r.driver.id=:driverId")
   public List<Ride> getCompletedRides(@Param("driverId") Long driverId);
 
-  // Search methods
+  // Search methods - includes ID, name, email, and mobile
   @Query("select d from Driver d where " +
+         "CAST(d.id AS string) LIKE CONCAT('%', :search, '%') OR " +
          "(d.name IS NOT NULL AND LOWER(d.name) LIKE LOWER(CONCAT('%', :search, '%'))) OR " +
          "(d.email IS NOT NULL AND LOWER(d.email) LIKE LOWER(CONCAT('%', :search, '%'))) OR " +
          "(d.mobile IS NOT NULL AND d.mobile LIKE CONCAT('%', :search, '%'))")

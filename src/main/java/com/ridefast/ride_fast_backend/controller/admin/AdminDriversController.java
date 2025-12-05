@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,7 +25,8 @@ public class AdminDriversController {
   public ResponseEntity<Page<Driver>> list(@RequestParam(defaultValue = "0") int page,
                                            @RequestParam(defaultValue = "20") int size,
                                            @RequestParam(required = false) String search) {
-    Pageable pageable = PageRequest.of(page, size);
+    // Sort by ID descending so newest drivers appear first
+    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
     if (search != null && !search.trim().isEmpty()) {
       // Escape special characters for LIKE query
       String searchTerm = search.trim().replace("%", "\\%").replace("_", "\\_");

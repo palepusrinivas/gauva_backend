@@ -31,8 +31,9 @@ public interface UserRepository extends JpaRepository<MyUser, String> {
     @Query("select u from MyUser u where u.email = :identifier or u.phone = :identifier")
     Optional<MyUser> findByEmailOrPhone(@Param("identifier") String identifier);
 
-    // Search methods
+    // Search methods - includes ID, fullName, email, and phone
     @Query("select u from MyUser u where " +
+           "LOWER(u.id) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "(u.fullName IS NOT NULL AND LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%'))) OR " +
            "(u.email IS NOT NULL AND LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) OR " +
            "(u.phone IS NOT NULL AND u.phone LIKE CONCAT('%', :search, '%'))")
