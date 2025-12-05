@@ -112,25 +112,34 @@ public class AdminApiKeyController {
     @PutMapping("/{keyName}")
     public ResponseEntity<?> setKey(@PathVariable String keyName, @RequestBody SetKeyRequest request) {
         try {
+            log.info("Setting API key: {}", keyName);
+            
             String normalizedName = keyName.toUpperCase().trim();
+            
+            if (request == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Request body is required"));
+            }
             
             if (request.getValue() == null || request.getValue().isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Value is required"));
             }
 
+            log.info("Calling apiKeyService.setKey for: {}", normalizedName);
             ApiKey savedKey = apiKeyService.setKey(normalizedName, request.getValue(), request.getDescription());
-            log.info("API key updated: {}", normalizedName);
+            log.info("API key saved successfully: id={}, name={}", savedKey.getId(), savedKey.getName());
 
-            return ResponseEntity.ok(Map.of(
-                    "id", savedKey.getId(),
-                    "name", savedKey.getName(),
-                    "description", savedKey.getDescription(),
-                    "message", "API key updated successfully"
-            ));
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", savedKey.getId());
+            response.put("name", savedKey.getName());
+            response.put("description", savedKey.getDescription() != null ? savedKey.getDescription() : "");
+            response.put("message", "API key updated successfully");
+            
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error setting API key", e);
+            log.error("Error setting API key: {} - {}", keyName, e.getClass().getName(), e);
+            String errorMessage = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to set API key: " + e.getMessage()));
+                    .body(Map.of("error", "Failed to set API key: " + errorMessage));
         }
     }
 
