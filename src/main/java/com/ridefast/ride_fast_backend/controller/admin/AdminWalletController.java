@@ -3,6 +3,7 @@ package com.ridefast.ride_fast_backend.controller.admin;
 import com.ridefast.ride_fast_backend.enums.WalletOwnerType;
 import com.ridefast.ride_fast_backend.model.WalletTransaction;
 import com.ridefast.ride_fast_backend.service.WalletService;
+import com.ridefast.ride_fast_backend.service.ApiKeyService;
 import java.math.BigDecimal;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -25,12 +26,7 @@ public class AdminWalletController {
   private final com.ridefast.ride_fast_backend.repository.DriverRepository driverRepository;
   private final com.ridefast.ride_fast_backend.repository.PaymentTransactionRepository paymentTransactionRepository;
   private final WalletService walletService;
-
-  @org.springframework.beans.factory.annotation.Value("${app.razorpay.key-id}")
-  private String razorpayKeyId;
-
-  @org.springframework.beans.factory.annotation.Value("${app.razorpay.key-secret}")
-  private String razorpayKeySecret;
+  private final ApiKeyService apiKeyService;
 
   @org.springframework.beans.factory.annotation.Value("${app.frontend.url}")
   private String frontendUrl;
@@ -96,7 +92,7 @@ public class AdminWalletController {
 
     tx = paymentTransactionRepository.save(tx);
 
-    com.razorpay.RazorpayClient razorpayClient = new com.razorpay.RazorpayClient(razorpayKeyId, razorpayKeySecret);
+    com.razorpay.RazorpayClient razorpayClient = new com.razorpay.RazorpayClient(apiKeyService.getRazorpayKeyId(), apiKeyService.getRazorpayKeySecret());
 
     org.json.JSONObject paymentLinkRequest = new org.json.JSONObject();
     paymentLinkRequest.put("amount", request.getAmount().multiply(new java.math.BigDecimal("100")).intValue());

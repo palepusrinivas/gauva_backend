@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 
 public interface PaymentTransactionRepository extends JpaRepository<PaymentTransaction, Long> {
   List<PaymentTransaction> findByUserIdOrderByCreatedAtDesc(String userId);
+  Page<PaymentTransaction> findByUserIdOrderByCreatedAtDesc(String userId, Pageable pageable);
   List<PaymentTransaction> findByDriverIdOrderByCreatedAtDesc(Long driverId);
   List<PaymentTransaction> findByRideIdOrderByCreatedAtDesc(Long rideId);
 
