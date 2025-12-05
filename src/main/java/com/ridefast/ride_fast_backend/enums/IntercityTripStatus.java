@@ -7,6 +7,9 @@ public enum IntercityTripStatus {
     /** Trip created, waiting for bookings */
     PENDING,
     
+    /** Trip scheduled for future departure */
+    SCHEDULED,
+    
     /** Trip has bookings but min seats not reached */
     FILLING,
     
