@@ -261,14 +261,24 @@ public class PaymentController {
   }
 
   @PostMapping("/webhooks/razorpay")
-  public ResponseEntity<Void> handleWebhook(@RequestHeader("X-Razorpay-Signature") String signature,
+  public ResponseEntity<Void> handleWebhook(
+      @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature,
       @RequestBody String payload) {
+    log.info("=== RAZORPAY WEBHOOK RECEIVED ===");
+    log.info("Payload: {}", payload);
     try {
       String webhookSecret = apiKeyService.getRazorpayWebhookSecret();
-      if (webhookSecret != null && !webhookSecret.isBlank()) {
+      log.info("Webhook secret configured: {}", webhookSecret != null && !webhookSecret.isBlank());
+      
+      if (webhookSecret != null && !webhookSecret.isBlank() && signature != null) {
         Utils.verifyWebhookSignature(payload, signature, webhookSecret);
+        log.info("Webhook signature verified successfully");
+      } else {
+        log.warn("Webhook signature verification skipped - secret or signature missing");
       }
       JSONObject event = new JSONObject(payload);
+      String eventType = event.optString("event");
+      log.info("Event type: {}", eventType);
 
       // String entity = event.optString("entity");
       // String eventType = event.optString("event");
@@ -314,9 +324,14 @@ public class PaymentController {
         }
       }
 
+      log.info("Webhook data - type: {}, userId: {}, amount: {}, ownerType: {}, transactionId: {}", 
+          type, userId, amount, ownerType, transactionId);
+
       if ("wallet_topup".equals(type) && userId != null && amount != null) {
         java.math.BigDecimal topUpAmount = java.math.BigDecimal.valueOf(amount)
             .divide(java.math.BigDecimal.valueOf(100));
+
+        log.info("Processing wallet top-up: userId={}, amount={}, ownerType={}", userId, topUpAmount, ownerType);
 
         // Determine wallet owner type
         WalletOwnerType walletOwnerType = "DRIVER".equals(ownerType) ? WalletOwnerType.DRIVER : WalletOwnerType.USER;
@@ -324,6 +339,8 @@ public class PaymentController {
         // Credit the wallet
         walletService.credit(walletOwnerType, userId, topUpAmount, "TOPUP", paymentId,
             "Wallet Top-up via Razorpay");
+        
+        log.info("Wallet credited successfully for userId={}, amount={}", userId, topUpAmount);
 
         // Update transaction status if we have the ID
         if (transactionId != null) {
@@ -386,8 +403,11 @@ public class PaymentController {
         }
       }
 
+      log.info("=== WEBHOOK PROCESSED SUCCESSFULLY ===");
       return new ResponseEntity<>(HttpStatus.OK);
     } catch (Exception ex) {
+      log.error("=== WEBHOOK PROCESSING FAILED ===");
+      log.error("Error: {}", ex.getMessage(), ex);
       return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
   }
