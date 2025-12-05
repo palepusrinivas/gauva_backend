@@ -27,6 +27,8 @@ public class WalletServiceImpl implements WalletService {
         .orElseGet(() -> walletRepository.save(Wallet.builder()
             .ownerType(ownerType)
             .ownerId(ownerId)
+            .balance(java.math.BigDecimal.ZERO)
+            .currency("INR")
             .build()));
   }
 
