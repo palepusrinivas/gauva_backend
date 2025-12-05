@@ -5,8 +5,6 @@ import com.ridefast.ride_fast_backend.repository.ApiKeyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -61,7 +59,6 @@ public class ApiKeyService {
      * Get API key value by name.
      * First checks database, then falls back to environment variable.
      */
-    @Cacheable(value = "apiKeys", key = "#keyName")
     public String getKey(String keyName) {
         // Try database first
         Optional<ApiKey> dbKey = apiKeyRepository.findByName(keyName);
@@ -100,33 +97,40 @@ public class ApiKeyService {
     /**
      * Set or update an API key
      */
-    @CacheEvict(value = "apiKeys", key = "#keyName")
     public ApiKey setKey(String keyName, String value, String description) {
-        ApiKey apiKey = apiKeyRepository.findByName(keyName)
-                .orElse(ApiKey.builder().name(keyName).build());
-        
-        apiKey.setValue(value);
-        if (description != null) {
-            apiKey.setDescription(description);
+        try {
+            ApiKey apiKey = apiKeyRepository.findByName(keyName).orElse(null);
+            
+            if (apiKey == null) {
+                // Create new
+                apiKey = new ApiKey();
+                apiKey.setName(keyName);
+            }
+            
+            apiKey.setValue(value);
+            if (description != null) {
+                apiKey.setDescription(description);
+            }
+            
+            return apiKeyRepository.save(apiKey);
+        } catch (Exception e) {
+            log.error("Error saving API key {}: {}", keyName, e.getMessage(), e);
+            throw e;
         }
-        
-        return apiKeyRepository.save(apiKey);
     }
 
     /**
      * Delete an API key
      */
-    @CacheEvict(value = "apiKeys", key = "#keyName")
     public void deleteKey(String keyName) {
         apiKeyRepository.findByName(keyName).ifPresent(apiKeyRepository::delete);
     }
 
     /**
-     * Clear all cached keys
+     * Clear cache - no-op since caching is disabled
      */
-    @CacheEvict(value = "apiKeys", allEntries = true)
     public void clearCache() {
-        log.info("API key cache cleared");
+        log.info("API key cache clear requested (caching disabled)");
     }
 
     // Razorpay specific getters
