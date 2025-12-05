@@ -5,11 +5,13 @@ import com.ridefast.ride_fast_backend.dto.FareEstimateResponse;
 import com.ridefast.ride_fast_backend.enums.ExtraFareStatus;
 import com.ridefast.ride_fast_backend.enums.ServiceType;
 import com.ridefast.ride_fast_backend.model.PricingProfile;
+import com.ridefast.ride_fast_backend.model.ServiceConfig;
 import com.ridefast.ride_fast_backend.model.ServiceRate;
 import com.ridefast.ride_fast_backend.model.v2.ZoneV2;
 import com.ridefast.ride_fast_backend.model.v2.VehicleCategory;
 import com.ridefast.ride_fast_backend.model.v2.TripFare;
 import com.ridefast.ride_fast_backend.repository.PricingProfileRepository;
+import com.ridefast.ride_fast_backend.repository.ServiceConfigRepository;
 import com.ridefast.ride_fast_backend.repository.ServiceRateRepository;
 import com.ridefast.ride_fast_backend.repository.v2.ZoneV2Repository;
 import com.ridefast.ride_fast_backend.repository.v2.VehicleCategoryRepository;
@@ -26,6 +28,7 @@ public class FareEngineImpl implements FareEngine {
 
   private final PricingProfileRepository pricingProfileRepository;
   private final ServiceRateRepository serviceRateRepository;
+  private final ServiceConfigRepository serviceConfigRepository;
   private final ZoneV2Repository zoneRepository;
   private final VehicleCategoryRepository vehicleCategoryRepository;
   private final TripFareRepository tripFareRepository;
@@ -99,6 +102,9 @@ public class FareEngineImpl implements FareEngine {
     }
     double finalTotal = round2(Math.max(0.0, total - discount));
 
+    // Build vehicle info from ServiceConfig
+    FareEstimateResponse.VehicleInfo vehicleInfo = buildVehicleInfo(type);
+
     return FareEstimateResponse.builder()
         .currency(profile.getCurrency())
         .baseFare(baseFare)
@@ -116,7 +122,79 @@ public class FareEngineImpl implements FareEngine {
         .appliedCoupon(appliedCoupon)
         .extraFareStatus(extraStatus)
         .extraFareReason(extraReason)
+        .vehicle(vehicleInfo)
         .build();
+  }
+
+  /**
+   * Build vehicle info from ServiceConfig based on service type
+   */
+  private FareEstimateResponse.VehicleInfo buildVehicleInfo(ServiceType type) {
+    String serviceId = type.name();
+    Optional<ServiceConfig> configOpt = serviceConfigRepository.findByServiceId(serviceId);
+    
+    if (configOpt.isPresent()) {
+      ServiceConfig config = configOpt.get();
+      return FareEstimateResponse.VehicleInfo.builder()
+          .serviceId(config.getServiceId())
+          .name(config.getName())
+          .displayName(config.getDisplayName())
+          .icon(config.getIcon())
+          .iconUrl(config.getIconUrl())
+          .capacity(config.getCapacity())
+          .vehicleType(config.getVehicleType())
+          .category(config.getCategory())
+          .estimatedArrival(config.getEstimatedArrival())
+          .description(config.getDescription())
+          .build();
+    }
+    
+    // Default fallback if not configured
+    return FareEstimateResponse.VehicleInfo.builder()
+        .serviceId(serviceId)
+        .name(getDefaultName(type))
+        .displayName(getDefaultName(type))
+        .icon(getDefaultIcon(type))
+        .iconUrl(null)
+        .capacity(getDefaultCapacity(type))
+        .vehicleType(getDefaultVehicleType(type))
+        .category("standard")
+        .estimatedArrival("5-10 mins")
+        .description(null)
+        .build();
+  }
+
+  private String getDefaultName(ServiceType type) {
+    return switch (type) {
+      case BIKE -> "Bike";
+      case CAR -> "Car";
+      case SMALL_SEDAN -> "Sedan";
+      case MEGA -> "Premium";
+    };
+  }
+
+  private String getDefaultIcon(ServiceType type) {
+    return switch (type) {
+      case BIKE -> "🏍️";
+      case CAR -> "🚗";
+      case SMALL_SEDAN -> "🚙";
+      case MEGA -> "🚘";
+    };
+  }
+
+  private int getDefaultCapacity(ServiceType type) {
+    return switch (type) {
+      case BIKE -> 1;
+      case CAR, SMALL_SEDAN -> 4;
+      case MEGA -> 6;
+    };
+  }
+
+  private String getDefaultVehicleType(ServiceType type) {
+    return switch (type) {
+      case BIKE -> "two_wheeler";
+      case CAR, SMALL_SEDAN, MEGA -> "four_wheeler";
+    };
   }
 
   private static double round2(double v) {

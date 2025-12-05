@@ -2,6 +2,7 @@ package com.ridefast.ride_fast_backend.controller.admin;
 
 import com.ridefast.ride_fast_backend.model.ServiceConfig;
 import com.ridefast.ride_fast_backend.repository.ServiceConfigRepository;
+import com.ridefast.ride_fast_backend.service.storage.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -9,13 +10,16 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Admin API for managing ride services (Car, Bike, Auto, etc.)
@@ -28,6 +32,7 @@ import java.util.Map;
 public class AdminServiceConfigController {
 
     private final ServiceConfigRepository serviceConfigRepository;
+    private final StorageService storageService;
 
     /**
      * Get all services with pagination and filtering
@@ -236,6 +241,66 @@ public class AdminServiceConfigController {
         stats.put("active", serviceConfigRepository.countByIsActiveTrue());
         stats.put("inactive", serviceConfigRepository.countByIsActiveFalse());
         return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * Upload vehicle icon for a service
+     * POST /api/admin/services/{id}/icon
+     */
+    @PostMapping(value = "/{id}/icon", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadServiceIcon(
+            @PathVariable Long id,
+            @RequestParam("icon") MultipartFile iconFile) {
+        
+        return serviceConfigRepository.findById(id)
+                .map(service -> {
+                    try {
+                        if (iconFile == null || iconFile.isEmpty()) {
+                            return ResponseEntity.badRequest()
+                                    .body(Map.of("error", "Icon file is required"));
+                        }
+
+                        // Validate file type
+                        String contentType = iconFile.getContentType();
+                        if (contentType == null || !contentType.startsWith("image/")) {
+                            return ResponseEntity.badRequest()
+                                    .body(Map.of("error", "Only image files are allowed"));
+                        }
+
+                        // Generate unique filename
+                        String extension = getFileExtension(iconFile.getOriginalFilename());
+                        String fileName = "vehicle_icons/" + service.getServiceId().toLowerCase() + 
+                                          "_" + UUID.randomUUID().toString().substring(0, 8) + extension;
+
+                        // Upload to Firebase Storage
+                        String iconUrl = storageService.uploadFile(iconFile, fileName);
+
+                        // Update service
+                        service.setIconUrl(iconUrl);
+                        ServiceConfig updated = serviceConfigRepository.save(service);
+
+                        log.info("Icon uploaded for service: id={}, iconUrl={}", id, iconUrl);
+
+                        return ResponseEntity.ok(Map.of(
+                                "status", "ok",
+                                "iconUrl", iconUrl,
+                                "service", updated
+                        ));
+
+                    } catch (Exception e) {
+                        log.error("Error uploading icon for service {}", id, e);
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(Map.of("error", "Failed to upload icon: " + e.getMessage()));
+                    }
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    private String getFileExtension(String filename) {
+        if (filename == null || !filename.contains(".")) {
+            return ".png";
+        }
+        return filename.substring(filename.lastIndexOf("."));
     }
 
     /**

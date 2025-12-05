@@ -1,7 +1,11 @@
 package com.ridefast.ride_fast_backend.controller.customer;
 
+import com.ridefast.ride_fast_backend.dto.FareEstimateRequest;
+import com.ridefast.ride_fast_backend.dto.FareEstimateResponse;
+import com.ridefast.ride_fast_backend.enums.ServiceType;
 import com.ridefast.ride_fast_backend.model.ServiceConfig;
 import com.ridefast.ride_fast_backend.repository.ServiceConfigRepository;
+import com.ridefast.ride_fast_backend.service.FareEngine;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +23,7 @@ import java.util.*;
 public class CustomerServicesController {
 
     private final ServiceConfigRepository serviceConfigRepository;
+    private final FareEngine fareEngine;
 
     /**
      * Get all active services with their details
@@ -90,6 +95,67 @@ public class CustomerServicesController {
         List<ServiceConfig> services = serviceConfigRepository.findByVehicleType(vehicleType);
         services = services.stream().filter(ServiceConfig::getIsActive).toList();
         return ResponseEntity.ok(services);
+    }
+
+    /**
+     * Get fare estimates for ALL vehicle types at once
+     * This is useful for the ride booking screen to show all options with fares
+     * 
+     * POST /api/v1/services/fare-estimates
+     */
+    @PostMapping("/fare-estimates")
+    public ResponseEntity<List<FareEstimateResponse>> getAllFareEstimates(
+            @RequestBody FareEstimateRequest baseRequest) {
+        
+        List<FareEstimateResponse> estimates = new ArrayList<>();
+        
+        // Get fare for each service type
+        for (ServiceType type : ServiceType.values()) {
+            try {
+                FareEstimateRequest req = new FareEstimateRequest();
+                req.setServiceType(type);
+                req.setDistanceKm(baseRequest.getDistanceKm());
+                req.setDurationMin(baseRequest.getDurationMin());
+                req.setPickupLat(baseRequest.getPickupLat());
+                req.setPickupLng(baseRequest.getPickupLng());
+                req.setDropLat(baseRequest.getDropLat());
+                req.setDropLng(baseRequest.getDropLng());
+                req.setPickupZoneReadableId(baseRequest.getPickupZoneReadableId());
+                req.setDropZoneReadableId(baseRequest.getDropZoneReadableId());
+                req.setCouponCode(baseRequest.getCouponCode());
+                req.setUserId(baseRequest.getUserId());
+                
+                FareEstimateResponse estimate = fareEngine.estimate(req);
+                estimates.add(estimate);
+            } catch (Exception e) {
+                // Skip if fare calculation fails for this type
+            }
+        }
+        
+        // Sort by final total (cheapest first)
+        estimates.sort(Comparator.comparingDouble(FareEstimateResponse::getFinalTotal));
+        
+        return ResponseEntity.ok(estimates);
+    }
+
+    /**
+     * Get fare estimate for a specific service type with full vehicle info
+     * 
+     * POST /api/v1/services/{serviceId}/fare
+     */
+    @PostMapping("/{serviceId}/fare")
+    public ResponseEntity<FareEstimateResponse> getServiceFare(
+            @PathVariable String serviceId,
+            @RequestBody FareEstimateRequest request) {
+        
+        try {
+            ServiceType type = ServiceType.valueOf(serviceId.toUpperCase());
+            request.setServiceType(type);
+            FareEstimateResponse estimate = fareEngine.estimate(request);
+            return ResponseEntity.ok(estimate);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 }
 
