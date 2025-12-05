@@ -61,6 +61,11 @@ public class IntercityTrip {
     @Builder.Default
     private Integer seatsBooked = 0;
 
+    /** Number of passengers actually onboarded (verified via OTP) */
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer passengersOnboarded = 0;
+
     /** Minimum seats required to dispatch */
     @Column(nullable = false)
     private Integer minSeats;

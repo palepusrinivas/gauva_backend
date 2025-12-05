@@ -88,5 +88,47 @@ public interface IntercityBookingRepository extends JpaRepository<IntercityBooki
         @Param("startDate") LocalDateTime startDate,
         @Param("endDate") LocalDateTime endDate
     );
+
+    /**
+     * Find bookings by trip and status
+     */
+    List<IntercityBooking> findByTripIdAndStatusIn(Long tripId, List<IntercityBookingStatus> statuses);
+
+    /**
+     * Count bookings by trip and status
+     */
+    int countByTripIdAndStatusIn(Long tripId, List<IntercityBookingStatus> statuses);
+
+    /**
+     * Sum of passengers onboarded for a trip
+     */
+    @Query("""
+        SELECT COALESCE(SUM(b.passengersOnboarded), 0) FROM IntercityBooking b 
+        WHERE b.trip.id = :tripId 
+        AND b.status IN ('CONFIRMED', 'COMPLETED')
+        """)
+    int sumPassengersOnboardedByTripId(@Param("tripId") Long tripId);
+
+    /**
+     * Count pending OTP verifications for a trip
+     */
+    @Query("""
+        SELECT COUNT(b) FROM IntercityBooking b 
+        WHERE b.trip.id = :tripId 
+        AND b.status IN ('CONFIRMED', 'COMPLETED')
+        AND (b.otpVerified IS NULL OR b.otpVerified = false)
+        """)
+    int countPendingVerificationsByTripId(@Param("tripId") Long tripId);
+
+    /**
+     * Count verified bookings for a trip
+     */
+    @Query("""
+        SELECT COUNT(b) FROM IntercityBooking b 
+        WHERE b.trip.id = :tripId 
+        AND b.status IN ('CONFIRMED', 'COMPLETED')
+        AND b.otpVerified = true
+        """)
+    int countVerifiedByTripId(@Param("tripId") Long tripId);
 }
 

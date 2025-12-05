@@ -29,6 +29,11 @@ public class IntercityBookingResponse {
     private BigDecimal perSeatAmount;
     private Integer otp;
     
+    /** OTP verification status */
+    private Boolean otpVerified;
+    private LocalDateTime otpVerifiedAt;
+    private Integer passengersOnboarded;
+    
     /** Payment details */
     private PaymentStatus paymentStatus;
     private String razorpayOrderId;
@@ -70,6 +75,7 @@ public class IntercityBookingResponse {
         private Integer availableSeats;
         private Integer minSeats;
         private Boolean minSeatsMet;
+        private Integer passengersOnboarded;
         
         private BigDecimal totalPrice;
         private BigDecimal currentPerHeadPrice;

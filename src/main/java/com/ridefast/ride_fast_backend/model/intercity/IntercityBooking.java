@@ -82,6 +82,17 @@ public class IntercityBooking {
     /** OTP for ride verification */
     private Integer otp;
 
+    /** OTP verified flag - true when driver verifies passenger */
+    @Builder.Default
+    private Boolean otpVerified = false;
+
+    /** Time when OTP was verified */
+    private LocalDateTime otpVerifiedAt;
+
+    /** Number of passengers actually onboarded (verified by driver) */
+    @Builder.Default
+    private Integer passengersOnboarded = 0;
+
     /** Refund amount (if applicable) */
     @Column(precision = 10, scale = 2)
     private BigDecimal refundAmount;

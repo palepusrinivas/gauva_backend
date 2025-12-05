@@ -48,6 +48,10 @@ public class IntercityTripDTO {
     private Integer minSeats;
     private Boolean minSeatsMet;
     
+    /** Onboarding information */
+    private Integer passengersOnboarded;
+    private Integer pendingVerifications;
+    
     /** Pricing */
     private BigDecimal totalPrice;
     private BigDecimal currentPerHeadPrice;

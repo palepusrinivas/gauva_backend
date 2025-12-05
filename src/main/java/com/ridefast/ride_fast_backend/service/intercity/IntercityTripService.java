@@ -7,6 +7,7 @@ import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.intercity.IntercityRoute;
 import com.ridefast.ride_fast_backend.model.intercity.IntercityTrip;
 import com.ridefast.ride_fast_backend.model.intercity.IntercityVehicleConfig;
+import com.ridefast.ride_fast_backend.repository.intercity.IntercityBookingRepository;
 import com.ridefast.ride_fast_backend.repository.intercity.IntercityRouteRepository;
 import com.ridefast.ride_fast_backend.repository.intercity.IntercityTripRepository;
 import com.ridefast.ride_fast_backend.repository.intercity.IntercityVehicleConfigRepository;
@@ -34,6 +35,7 @@ public class IntercityTripService {
     private final IntercityTripRepository tripRepository;
     private final IntercityRouteRepository routeRepository;
     private final IntercityVehicleConfigRepository vehicleConfigRepository;
+    private final IntercityBookingRepository bookingRepository;
     private final IntercityPricingService pricingService;
     
     /** Default countdown duration in minutes */
@@ -228,6 +230,8 @@ public class IntercityTripService {
             .availableSeats(trip.getAvailableSeats())
             .minSeats(trip.getMinSeats())
             .minSeatsMet(trip.isMinSeatsMet())
+            .passengersOnboarded(trip.getPassengersOnboarded() != null ? trip.getPassengersOnboarded() : 0)
+            .pendingVerifications(bookingRepository.countPendingVerificationsByTripId(trip.getId()))
             .totalPrice(trip.getTotalPrice())
             .currentPerHeadPrice(trip.getCurrentPerHeadPrice())
             .projectedPriceIfYouJoin(projectedPrice)

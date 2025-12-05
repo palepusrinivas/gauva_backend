@@ -412,6 +412,7 @@ public class IntercityBookingService {
             .availableSeats(trip.getAvailableSeats())
             .minSeats(trip.getMinSeats())
             .minSeatsMet(trip.isMinSeatsMet())
+            .passengersOnboarded(trip.getPassengersOnboarded() != null ? trip.getPassengersOnboarded() : 0)
             .totalPrice(trip.getTotalPrice())
             .currentPerHeadPrice(trip.getCurrentPerHeadPrice())
             .build();
@@ -445,6 +446,9 @@ public class IntercityBookingService {
             .totalAmount(booking.getTotalAmount())
             .perSeatAmount(booking.getPerSeatAmount())
             .otp(booking.getOtp())
+            .otpVerified(booking.getOtpVerified() != null ? booking.getOtpVerified() : false)
+            .otpVerifiedAt(booking.getOtpVerifiedAt())
+            .passengersOnboarded(booking.getPassengersOnboarded() != null ? booking.getPassengersOnboarded() : 0)
             .paymentStatus(booking.getPaymentStatus())
             .razorpayOrderId(booking.getRazorpayOrderId())
             .trip(tripInfo)
