@@ -59,7 +59,7 @@ public class AdminZonesController {
     }
 
     // Get all active vehicle categories
-    var vehicleCategories = serviceConfigRepository.findByActiveTrueOrderByDisplayOrderAsc();
+    var vehicleCategories = serviceConfigRepository.findByIsActiveTrueOrderByDisplayOrderAsc();
     
     // Build response with additional info
     List<Map<String, Object>> operationZones = new ArrayList<>();
@@ -107,7 +107,7 @@ public class AdminZonesController {
   public ResponseEntity<Map<String, Object>> getOperationZoneById(@PathVariable String id) {
     return zoneRepository.findById(id)
         .map(zone -> {
-          var vehicleCategories = serviceConfigRepository.findByActiveTrueOrderByDisplayOrderAsc();
+          var vehicleCategories = serviceConfigRepository.findByIsActiveTrueOrderByDisplayOrderAsc();
           long totalDrivers = driverRepository.count();
           
           Map<String, Object> opZone = new HashMap<>();
