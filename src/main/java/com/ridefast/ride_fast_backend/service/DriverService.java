@@ -29,4 +29,6 @@ public interface DriverService {
   Driver updateBankDetails(String jwtToken, UpdateBankDetailsRequest request) throws ResourceNotFoundException;
 
   Driver updateProfile(String jwtToken, UpdateDriverProfileRequest request) throws ResourceNotFoundException;
+
+  void changePassword(String jwtToken, String currentPassword, String newPassword) throws ResourceNotFoundException;
 }

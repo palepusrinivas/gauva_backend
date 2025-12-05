@@ -2,11 +2,13 @@ package com.ridefast.ride_fast_backend.controller;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ridefast.ride_fast_backend.dto.ChangePasswordRequest;
 import com.ridefast.ride_fast_backend.dto.DriverResponse;
 import com.ridefast.ride_fast_backend.dto.RideDto;
 import com.ridefast.ride_fast_backend.dto.UpdateBankDetailsRequest;
@@ -24,6 +27,7 @@ import com.ridefast.ride_fast_backend.model.Driver;
 import com.ridefast.ride_fast_backend.model.Ride;
 import com.ridefast.ride_fast_backend.service.DriverService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -100,5 +104,32 @@ public class DriverController {
     Driver updated = driverService.updateBankDetails(jwtToken, request);
     DriverResponse response = modelMapper.map(updated, DriverResponse.class);
     return new ResponseEntity<>(response, HttpStatus.OK);
+  }
+
+  @PostMapping("/change-password")
+  public ResponseEntity<Map<String, Object>> changePassword(
+      @RequestHeader("Authorization") String jwtToken,
+      @Valid @RequestBody ChangePasswordRequest request) throws ResourceNotFoundException {
+    
+    // Validate passwords match
+    if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+      return ResponseEntity.badRequest().body(Map.of(
+          "success", false,
+          "message", "New password and confirm password do not match"
+      ));
+    }
+    
+    try {
+      driverService.changePassword(jwtToken, request.getCurrentPassword(), request.getNewPassword());
+      return ResponseEntity.ok(Map.of(
+          "success", true,
+          "message", "Password changed successfully"
+      ));
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().body(Map.of(
+          "success", false,
+          "message", e.getMessage()
+      ));
+    }
   }
 }

@@ -3,6 +3,7 @@ package com.ridefast.ride_fast_backend.service.impl;
 import java.util.List;
 
 import org.modelmapper.ModelMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.ridefast.ride_fast_backend.dto.UpdateUserProfileRequest;
@@ -23,6 +24,7 @@ public class UserServiceImpl implements UserService {
   private final UserRepository usereRepository;
   private final JwtTokenHelper tokenHelper;
   private final ModelMapper modelMapper;
+  private final PasswordEncoder passwordEncoder;
 
   @Override
   public MyUser getRequestedUserProfile(String jwtToken) throws ResourceNotFoundException, UserException {
@@ -84,6 +86,29 @@ public class UserServiceImpl implements UserService {
     }
     
     return usereRepository.save(user);
+  }
+
+  @Override
+  public void changePassword(String jwtToken, String currentPassword, String newPassword) throws ResourceNotFoundException, UserException {
+    MyUser user = getRequestedUserProfile(jwtToken);
+    
+    // Verify current password
+    if (user.getPassword() == null || user.getPassword().isBlank()) {
+      throw new IllegalArgumentException("Cannot change password for social login accounts");
+    }
+    
+    if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+      throw new IllegalArgumentException("Current password is incorrect");
+    }
+    
+    // Validate new password
+    if (newPassword.length() < 6) {
+      throw new IllegalArgumentException("New password must be at least 6 characters");
+    }
+    
+    // Update password
+    user.setPassword(passwordEncoder.encode(newPassword));
+    usereRepository.save(user);
   }
 
 }

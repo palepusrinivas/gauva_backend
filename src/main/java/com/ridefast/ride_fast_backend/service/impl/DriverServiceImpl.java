@@ -176,4 +176,29 @@ public class DriverServiceImpl implements DriverService {
     return driverRepository.save(driver);
   }
 
+  @Override
+  public void changePassword(String jwtToken, String currentPassword, String newPassword) throws ResourceNotFoundException {
+    String email = tokenHelper.getUsernameFromToken(jwtToken);
+    Driver driver = driverRepository.findByEmail(email)
+        .orElseThrow(() -> new ResourceNotFoundException("Driver", "username", email));
+    
+    // Verify current password
+    if (driver.getPassword() == null || driver.getPassword().isBlank()) {
+      throw new IllegalArgumentException("Cannot change password - no password set");
+    }
+    
+    if (!passwordEncoder.matches(currentPassword, driver.getPassword())) {
+      throw new IllegalArgumentException("Current password is incorrect");
+    }
+    
+    // Validate new password
+    if (newPassword.length() < 6) {
+      throw new IllegalArgumentException("New password must be at least 6 characters");
+    }
+    
+    // Update password
+    driver.setPassword(passwordEncoder.encode(newPassword));
+    driverRepository.save(driver);
+  }
+
 }

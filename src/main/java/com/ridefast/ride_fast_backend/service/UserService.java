@@ -22,4 +22,6 @@ public interface UserService {
   List<Ride> getUserRequestedRide(String userId) throws ResourceNotFoundException;
 
   MyUser updateProfile(String jwtToken, UpdateUserProfileRequest request) throws ResourceNotFoundException, UserException;
+
+  void changePassword(String jwtToken, String currentPassword, String newPassword) throws ResourceNotFoundException, UserException;
 }
