@@ -200,8 +200,14 @@ public class PaymentController {
   }
 
   @GetMapping("/payments")
-  public ResponseEntity<MessageResponse> redirect(@RequestParam(name = "payment_id") String paymentId,
-      @RequestParam("order_id") Long rideId) throws RazorpayException, ResourceNotFoundException {
+  public ResponseEntity<MessageResponse> redirect(
+      @RequestParam(name = "payment_id", required = false) String paymentId,
+      @RequestParam(name = "order_id", required = false) Long rideId) throws RazorpayException, ResourceNotFoundException {
+    
+    // Return error if parameters missing
+    if (paymentId == null || rideId == null) {
+      return new ResponseEntity<>(new MessageResponse("Missing required parameters: payment_id and order_id"), HttpStatus.BAD_REQUEST);
+    }
     RazorpayClient razorpay = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
     Ride ride = rideService.findRideById(rideId);
 

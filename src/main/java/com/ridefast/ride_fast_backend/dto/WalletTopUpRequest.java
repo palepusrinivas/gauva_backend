@@ -20,4 +20,6 @@ public class WalletTopUpRequest {
 
     @NotNull(message = "Owner type is required")
     private WalletOwnerType ownerType;
+
+    private String ownerId;
 }
