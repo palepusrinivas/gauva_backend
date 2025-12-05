@@ -73,7 +73,7 @@ public class IntercityPricingService {
             options.forEach(opt -> {
                 opt.setRouteId(finalRoute.getId());
                 opt.setDistanceKm(finalRoute.getDistanceKm());
-                opt.setEstimatedDurationMinutes(finalRoute.getEstimatedDurationMinutes());
+                opt.setEstimatedDurationMinutes(finalRoute.getDurationMinutes());
             });
         }
         
@@ -166,7 +166,7 @@ public class IntercityPricingService {
                 .isRecommended(false)
                 .routeId(route != null ? route.getId() : null)
                 .distanceKm(route != null ? route.getDistanceKm() : null)
-                .estimatedDurationMinutes(route != null ? route.getEstimatedDurationMinutes() : null)
+                .estimatedDurationMinutes(route != null ? route.getDurationMinutes() : null)
                 .build();
             
             options.add(option);
