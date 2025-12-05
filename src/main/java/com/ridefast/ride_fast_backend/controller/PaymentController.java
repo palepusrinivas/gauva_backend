@@ -264,7 +264,10 @@ public class PaymentController {
   public ResponseEntity<Void> handleWebhook(@RequestHeader("X-Razorpay-Signature") String signature,
       @RequestBody String payload) {
     try {
-      Utils.verifyWebhookSignature(payload, signature, razorpayWebhookSecret);
+      String webhookSecret = apiKeyService.getRazorpayWebhookSecret();
+      if (webhookSecret != null && !webhookSecret.isBlank()) {
+        Utils.verifyWebhookSignature(payload, signature, webhookSecret);
+      }
       JSONObject event = new JSONObject(payload);
 
       // String entity = event.optString("entity");
@@ -277,6 +280,7 @@ public class PaymentController {
       Long transactionId = null;
       String paymentId = null;
       Integer amount = null;
+      String ownerType = null;
 
       if (payloadObj != null) {
         JSONObject entity = null;
@@ -306,23 +310,6 @@ public class PaymentController {
               ownerType = notes.getString("owner_type");
             if (notes.has("transaction_id"))
               transactionId = notes.getLong("transaction_id");
-          }
-        }
-      }
-
-      String ownerType = null;
-      // Re-parse owner_type from notes if available
-      if (payloadObj != null) {
-        JSONObject entity = null;
-        if (payloadObj.has("payment_link")) {
-          entity = payloadObj.getJSONObject("payment_link").getJSONObject("entity");
-        } else if (payloadObj.has("payment")) {
-          entity = payloadObj.getJSONObject("payment").getJSONObject("entity");
-        }
-        if (entity != null) {
-          JSONObject notes = entity.optJSONObject("notes");
-          if (notes != null && notes.has("owner_type")) {
-            ownerType = notes.getString("owner_type");
           }
         }
       }
