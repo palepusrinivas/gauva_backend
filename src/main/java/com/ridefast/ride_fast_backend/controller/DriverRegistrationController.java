@@ -20,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,6 +47,7 @@ public class DriverRegistrationController {
     private final JwtTokenHelper jwtTokenHelper;
 
     @PostMapping(value = "/register/driver/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Transactional
     public ResponseEntity<?> registerDriverWithDocuments(
             // Basic driver info
             @RequestParam("name") String name,
@@ -116,7 +118,15 @@ public class DriverRegistrationController {
                     .upiId(upiId)
                     .build();
             
-            // Create Vehicle if provided
+            // Save driver first to get ID
+            driver = driverRepository.save(driver);
+            final Long driverId = driver.getId();
+            
+            // Refresh driver from DB to ensure it's managed in the current persistence context
+            driver = driverRepository.findById(driverId)
+                    .orElseThrow(() -> new RuntimeException("Failed to retrieve saved driver"));
+            
+            // Create and save Vehicle if provided (after driver is saved and refreshed)
             if (vehicleNumber != null || vehicleType != null) {
                 Vehicle vehicle = Vehicle.builder()
                         .vehicleId(vehicleNumber)
@@ -124,31 +134,29 @@ public class DriverRegistrationController {
                         .model(vehicleModel != null ? vehicleModel : vehicleType)
                         .color(vehicleColor)
                         .build();
-                vehicle = vehicleRepository.save(vehicle);
-                driver.setVehicle(vehicle);
+                // Save vehicle first without driver reference
+                Vehicle savedVehicle = vehicleRepository.save(vehicle);
+                // Now set bidirectional relationship with managed driver entity
+                savedVehicle.setDriver(driver);
+                driver.setVehicle(savedVehicle);
+                // Save both to persist relationships
+                vehicleRepository.save(savedVehicle);
+                driverRepository.save(driver);
             }
             
-            // Create License if provided
-            if (licenseNumber != null) {
+            // Create and save License if provided (after driver is saved and refreshed)
+            if (licenseNumber != null && !licenseNumber.isBlank()) {
                 License license = License.builder()
                         .licenseNumber(licenseNumber)
                         .build();
-                license = licenseRepository.save(license);
-                driver.setLicense(license);
-            }
-            
-            // Save driver first to get ID
-            driver = driverRepository.save(driver);
-            final Long driverId = driver.getId();
-            
-            // Update vehicle and license with driver reference
-            if (driver.getVehicle() != null) {
-                driver.getVehicle().setDriver(driver);
-                vehicleRepository.save(driver.getVehicle());
-            }
-            if (driver.getLicense() != null) {
-                driver.getLicense().setDriver(driver);
-                licenseRepository.save(driver.getLicense());
+                // Save license first without driver reference
+                License savedLicense = licenseRepository.save(license);
+                // Now set bidirectional relationship with managed driver entity
+                savedLicense.setDriver(driver);
+                driver.setLicense(savedLicense);
+                // Save both to persist relationships
+                licenseRepository.save(savedLicense);
+                driverRepository.save(driver);
             }
             
             // Upload documents and create KYC record
