@@ -12,6 +12,8 @@ import com.ridefast.ride_fast_backend.model.Ride;
 
 public interface DriverRepository extends JpaRepository<Driver, Long> {
   public Optional<Driver> findByEmail(String email);
+  
+  public Optional<Driver> findByMobile(String mobile);
 
   boolean existsByShortCode(String shortCode);
 

@@ -17,6 +17,12 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
   List<PaymentTransaction> findByRideIdOrderByCreatedAtDesc(Long rideId);
 
   Page<PaymentTransaction> findAllByOrderByCreatedAtDesc(Pageable pageable);
+  
+  // For admin panel
+  Page<PaymentTransaction> findByStatus(String status, Pageable pageable);
+  Page<PaymentTransaction> findByType(String type, Pageable pageable);
+  Page<PaymentTransaction> findByStatusAndType(String status, String type, Pageable pageable);
+  Page<PaymentTransaction> findByProvider(String provider, Pageable pageable);
 
   @Query("select sum(t.amount) from PaymentTransaction t where t.status = :status")
   BigDecimal sumByStatus(@Param("status") String status);

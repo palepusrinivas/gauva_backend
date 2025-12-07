@@ -153,6 +153,7 @@ public class MyUser {
     @JoinColumn(name = "current_ride_id")
     private Ride currentRide;
 
+    @JsonIgnore
     @OneToOne(mappedBy = "user")
     private RefreshToken refreshToken;
 }

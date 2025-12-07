@@ -53,6 +53,7 @@ public class Driver {
 
     private Long totalRevenue = 0L;
 
+    @JsonIgnore
     @OneToOne(mappedBy = "driver")
     private RefreshToken refreshToken;
 

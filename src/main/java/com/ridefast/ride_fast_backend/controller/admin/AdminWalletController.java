@@ -1,19 +1,26 @@
 package com.ridefast.ride_fast_backend.controller.admin;
 
 import com.ridefast.ride_fast_backend.enums.WalletOwnerType;
+import com.ridefast.ride_fast_backend.model.PaymentTransaction;
 import com.ridefast.ride_fast_backend.model.WalletTransaction;
 import com.ridefast.ride_fast_backend.service.WalletService;
 import com.ridefast.ride_fast_backend.service.ApiKeyService;
 import java.math.BigDecimal;
+import java.util.List;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -151,6 +158,69 @@ public class AdminWalletController {
     WalletTransaction tx = walletService.debit(WalletOwnerType.DRIVER, driverId.toString(), req.getAmount(),
         "ADMIN_DEBIT", null, req.getReason() + (req.getNotes() != null ? " - " + req.getNotes() : ""));
     return new ResponseEntity<>(tx, HttpStatus.CREATED);
+  }
+
+  // ==================== RAZORPAY TRANSACTIONS ====================
+
+  @GetMapping("/razorpay-transactions")
+  public ResponseEntity<Page<PaymentTransaction>> getRazorpayTransactions(
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "20") int size,
+      @RequestParam(required = false) String status,
+      @RequestParam(required = false) String type) {
+    
+    PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Page<PaymentTransaction> transactions;
+    
+    if (status != null && !status.isBlank()) {
+      transactions = paymentTransactionRepository.findByStatus(status, pageRequest);
+    } else if (type != null && !type.isBlank()) {
+      transactions = paymentTransactionRepository.findByType(type, pageRequest);
+    } else {
+      transactions = paymentTransactionRepository.findAll(pageRequest);
+    }
+    
+    return ResponseEntity.ok(transactions);
+  }
+
+  @GetMapping("/razorpay-transactions/{id}")
+  public ResponseEntity<PaymentTransaction> getRazorpayTransaction(@PathVariable Long id) {
+    return paymentTransactionRepository.findById(id)
+        .map(ResponseEntity::ok)
+        .orElse(ResponseEntity.notFound().build());
+  }
+
+  @GetMapping("/razorpay-transactions/stats")
+  public ResponseEntity<TransactionStats> getTransactionStats() {
+    List<PaymentTransaction> all = paymentTransactionRepository.findAll();
+    
+    long total = all.size();
+    long success = all.stream().filter(t -> "SUCCESS".equals(t.getStatus())).count();
+    long pending = all.stream().filter(t -> "PENDING".equals(t.getStatus()) || "INITIATED".equals(t.getStatus())).count();
+    long failed = all.stream().filter(t -> "FAILED".equals(t.getStatus())).count();
+    
+    BigDecimal totalAmount = all.stream()
+        .filter(t -> "SUCCESS".equals(t.getStatus()))
+        .map(PaymentTransaction::getAmount)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    
+    TransactionStats stats = new TransactionStats();
+    stats.setTotalTransactions(total);
+    stats.setSuccessCount(success);
+    stats.setPendingCount(pending);
+    stats.setFailedCount(failed);
+    stats.setTotalSuccessAmount(totalAmount);
+    
+    return ResponseEntity.ok(stats);
+  }
+
+  @Data
+  public static class TransactionStats {
+    private long totalTransactions;
+    private long successCount;
+    private long pendingCount;
+    private long failedCount;
+    private BigDecimal totalSuccessAmount;
   }
 
   @Data
