@@ -49,8 +49,22 @@ public class DriverServiceImpl implements DriverService {
     License license = request.getLicenseOrBuild();
     Vehicle vehicle = request.getVehicleOrBuild();
     
-    // Create driver first
-    Driver driver = modelMapper.map(request, Driver.class);
+    // Create driver manually to avoid ModelMapper conflicts with *Id fields
+    Driver driver = Driver.builder()
+        .name(request.getName())
+        .email(request.getEmail())
+        .mobile(request.getMobile())
+        .latitude(request.getLatitude())
+        .longitude(request.getLongitude())
+        .accountHolderName(request.getAccountHolderName())
+        .bankName(request.getBankName())
+        .accountNumber(request.getAccountNumber())
+        .ifscCode(request.getIfscCode())
+        .upiId(request.getUpiId())
+        .bankAddress(request.getBankAddress())
+        .bankMobile(request.getBankMobile())
+        .build();
+    
     driver.setPassword(passwordEncoder.encode(request.getPassword()));
     driver.setRole(UserRole.DRIVER);
     
