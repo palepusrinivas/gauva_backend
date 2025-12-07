@@ -140,7 +140,13 @@ public class FirebaseStorageServiceImpl implements StorageService {
       // Return a public URL format
       // Firebase Storage URLs: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?alt=media
       GsInfo info = parseGs(gsPath);
-      String encodedPath = java.net.URLEncoder.encode(info.prefix() + objectName, "UTF-8");
+      // info.prefix() already contains the full path including objectName, don't add it again
+      String fullPath = info.prefix();
+      // Remove trailing slash if present
+      if (fullPath.endsWith("/")) {
+        fullPath = fullPath.substring(0, fullPath.length() - 1);
+      }
+      String encodedPath = java.net.URLEncoder.encode(fullPath, "UTF-8");
       return String.format("https://firebasestorage.googleapis.com/v0/b/%s/o/%s?alt=media", 
           info.bucket(), encodedPath);
     } catch (Exception e) {
