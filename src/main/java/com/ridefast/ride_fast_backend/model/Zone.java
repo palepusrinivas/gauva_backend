@@ -15,9 +15,9 @@ import java.time.LocalDateTime;
 @Builder
 public class Zone {
   @Id
-  @Column(name = "id",  nullable = false, length = 36)
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private String id;
+  @Column(name = "id", nullable = false)
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
   @Column(name = "name", nullable = false, unique = true, length = 255)
   private String name;
@@ -29,13 +29,16 @@ public class Zone {
   private String coordinates;
 
   @Column(name = "is_active")
-  private Boolean isActive;
+  @Builder.Default
+  private Boolean isActive = true;
 
   @Column(name = "extra_fare_status")
-  private String extraFareStatus;
+  @Builder.Default
+  private String extraFareStatus = "NONE";
 
-  @Column(name = "extra_fare_fee", nullable = false)
-  private double extraFareFee;
+  @Column(name = "extra_fare_fee")
+  @Builder.Default
+  private Double extraFareFee = 0.0;
 
   @Column(name = "extra_fare_reason")
   private String extraFareReason;
@@ -53,7 +56,8 @@ public class Zone {
   private LocalDateTime updatedAt;
 
   @Column(name = "active", columnDefinition = "bit(1)")
-  private Boolean active;
+  @Builder.Default
+  private Boolean active = true;
 
   @Column(name = "polygon_wkt", columnDefinition = "TEXT")
   private String polygonWkt;

@@ -113,13 +113,13 @@ public class AdminPricingController {
 
   // Zone rules
   @GetMapping("/zones/{zoneId}/rules")
-  public ResponseEntity<List<ZoneFareRule>> listZoneRules(@PathVariable String zoneId) {
+  public ResponseEntity<List<ZoneFareRule>> listZoneRules(@PathVariable Long zoneId) {
     Zone zone = zoneRepo.findById(zoneId).orElseThrow();
     return ResponseEntity.ok(zoneRuleRepo.findAll().stream().filter(r -> r.getZone().getId().equals(zone.getId())).toList());
   }
 
   @PostMapping("/zones/{zoneId}/rules")
-  public ResponseEntity<ZoneFareRule> upsertZoneRule(@PathVariable String zoneId,
+  public ResponseEntity<ZoneFareRule> upsertZoneRule(@PathVariable Long zoneId,
       @RequestParam Long profileId,
       @RequestBody ZoneFareRule body) {
     Zone zone = zoneRepo.findById(zoneId).orElseThrow();
