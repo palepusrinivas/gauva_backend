@@ -45,24 +45,45 @@ public class DriverServiceImpl implements DriverService {
 
   @Override
   public Driver registerDriver(DriverSignUpRequest request) {
-    License license = request.getLicense();
-    Vehicle vehicle = request.getVehicle();
-    // make object of license & vehicle then save
-    License savedLicense = licenseRepository.save(license);
-    Vehicle savedVehicle = vehicleRepository.save(vehicle);
+    // Support both nested objects and flat fields from Flutter app
+    License license = request.getLicenseOrBuild();
+    Vehicle vehicle = request.getVehicleOrBuild();
+    
+    // Create driver first
     Driver driver = modelMapper.map(request, Driver.class);
     driver.setPassword(passwordEncoder.encode(request.getPassword()));
-    driver.setLicense(savedLicense);
-    driver.setVehicle(savedVehicle);
     driver.setRole(UserRole.DRIVER);
+    
     if (driver.getShortCode() == null || driver.getShortCode().isBlank()) {
       driver.setShortCode(shortCodeService.generateDriverCode());
     }
+    
+    // Save license and vehicle if provided
+    License savedLicense = null;
+    Vehicle savedVehicle = null;
+    
+    if (license != null) {
+      savedLicense = licenseRepository.save(license);
+      driver.setLicense(savedLicense);
+    }
+    
+    if (vehicle != null) {
+      savedVehicle = vehicleRepository.save(vehicle);
+      driver.setVehicle(savedVehicle);
+    }
+    
     Driver savedDriver = driverRepository.save(driver);
-    savedLicense.setDriver(savedDriver);
-    savedVehicle.setDriver(savedDriver);
-    licenseRepository.save(savedLicense);
-    vehicleRepository.save(savedVehicle);
+    
+    // Update back-references
+    if (savedLicense != null) {
+      savedLicense.setDriver(savedDriver);
+      licenseRepository.save(savedLicense);
+    }
+    if (savedVehicle != null) {
+      savedVehicle.setDriver(savedDriver);
+      vehicleRepository.save(savedVehicle);
+    }
+    
     return savedDriver;
   }
 

@@ -37,3 +37,7 @@ logs/
 logs/*.log
 *.log
 **/logs/**
+gauva-15d9a-firebase-adminsdk-fbsvc-ea3bd62754.json
+*.json
+.DS_Store
+*-firebase-adminsdk-*.json

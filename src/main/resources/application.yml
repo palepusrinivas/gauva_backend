@@ -63,13 +63,13 @@ app:
     kyc-prefix: ${APP_STORAGE_KYC_PREFIX:drivers}
   firebase:
     project-id: ${FIREBASE_PROJECT_ID:gauva-15d9a}
-    # Try appspot.com format first (standard Firebase Storage bucket)
-    storage-bucket: ${FIREBASE_STORAGE_BUCKET:gauva-15d9a.appspot.com}
+    # Firebase Storage bucket (new format: .firebasestorage.app)
+    storage-bucket: ${FIREBASE_STORAGE_BUCKET:gauva-15d9a.firebasestorage.app}
     credentials-b64: ${FIREBASE_CREDENTIALS_B64:}
     credentials-path: ${FIREBASE_CREDENTIALS_PATH:gauva-15d9a-firebase-adminsdk-fbsvc-ea3bd62754.json}
-    # Use appspot.com bucket for gs:// paths
-    documents-gs-path: ${FIREBASE_DOCUMENTS_GS_PATH:gs://gauva-15d9a.appspot.com/documents}
-    logs-gs-path: ${FIREBASE_LOGS_GS_PATH:gs://gauva-15d9a.appspot.com/app_logs}
+    # Use firebasestorage.app bucket for gs:// paths
+    documents-gs-path: ${FIREBASE_DOCUMENTS_GS_PATH:gs://gauva-15d9a.firebasestorage.app/documents}
+    logs-gs-path: ${FIREBASE_LOGS_GS_PATH:gs://gauva-15d9a.firebasestorage.app/app_logs}
     limits:
       doc-max-bytes: ${FIREBASE_DOC_MAX_BYTES:2097152}   # 2MB
       log-max-bytes: ${FIREBASE_LOG_MAX_BYTES:5242880}   # 5MB

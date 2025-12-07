@@ -110,6 +110,9 @@ public class AdminBannerController {
             
             // Handle image upload
             if (bannerImage != null && !bannerImage.isEmpty()) {
+                log.info("Processing banner image: name={}, size={}, type={}", 
+                    bannerImage.getOriginalFilename(), bannerImage.getSize(), bannerImage.getContentType());
+                
                 // Validate file type
                 String contentType = bannerImage.getContentType();
                 if (contentType == null || !isValidImageType(contentType)) {
@@ -124,12 +127,16 @@ public class AdminBannerController {
                 // Upload to storage
                 try {
                     String fileName = "banners/" + UUID.randomUUID() + "_" + bannerImage.getOriginalFilename();
+                    log.info("Uploading banner image to: {}", fileName);
                     imageUrl = storageService.uploadFile(bannerImage, fileName);
-                    log.info("Banner image uploaded: {}", imageUrl);
+                    log.info("Banner image uploaded successfully: {}", imageUrl);
                 } catch (Exception e) {
-                    log.error("Failed to upload banner image", e);
-                    // Continue without image if upload fails
+                    log.error("Failed to upload banner image: {}", e.getMessage(), e);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(Map.of("error", "Failed to upload image: " + e.getMessage()));
                 }
+            } else {
+                log.warn("No banner image provided in request");
             }
 
             // Create banner
