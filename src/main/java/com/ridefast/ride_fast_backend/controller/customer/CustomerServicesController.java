@@ -4,7 +4,13 @@ import com.ridefast.ride_fast_backend.dto.FareEstimateRequest;
 import com.ridefast.ride_fast_backend.dto.FareEstimateResponse;
 import com.ridefast.ride_fast_backend.enums.ServiceType;
 import com.ridefast.ride_fast_backend.model.ServiceConfig;
+import com.ridefast.ride_fast_backend.model.v2.ZoneV2;
+import com.ridefast.ride_fast_backend.model.v2.VehicleCategory;
+import com.ridefast.ride_fast_backend.model.v2.TripFare;
 import com.ridefast.ride_fast_backend.repository.ServiceConfigRepository;
+import com.ridefast.ride_fast_backend.repository.v2.ZoneV2Repository;
+import com.ridefast.ride_fast_backend.repository.v2.VehicleCategoryRepository;
+import com.ridefast.ride_fast_backend.repository.v2.TripFareRepository;
 import com.ridefast.ride_fast_backend.service.FareEngine;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +30,9 @@ public class CustomerServicesController {
 
     private final ServiceConfigRepository serviceConfigRepository;
     private final FareEngine fareEngine;
+    private final ZoneV2Repository zoneRepository;
+    private final VehicleCategoryRepository vehicleCategoryRepository;
+    private final TripFareRepository tripFareRepository;
 
     /**
      * Get all active services with their details
@@ -98,8 +107,9 @@ public class CustomerServicesController {
     }
 
     /**
-     * Get fare estimates for ALL vehicle types at once
+     * Get fare estimates for ALL active services at once
      * This is useful for the ride booking screen to show all options with fares
+     * Returns estimates for all active services configured in the database
      * 
      * POST /api/v1/services/fare-estimates
      */
@@ -109,26 +119,42 @@ public class CustomerServicesController {
         
         List<FareEstimateResponse> estimates = new ArrayList<>();
         
-        // Get fare for each service type
-        for (ServiceType type : ServiceType.values()) {
+        // Get all active services from database (not just enum values)
+        List<ServiceConfig> activeServices = serviceConfigRepository.findByIsActiveTrueOrderByDisplayOrderAsc();
+        
+        for (ServiceConfig service : activeServices) {
             try {
-                FareEstimateRequest req = new FareEstimateRequest();
-                req.setServiceType(type);
-                req.setDistanceKm(baseRequest.getDistanceKm());
-                req.setDurationMin(baseRequest.getDurationMin());
-                req.setPickupLat(baseRequest.getPickupLat());
-                req.setPickupLng(baseRequest.getPickupLng());
-                req.setDropLat(baseRequest.getDropLat());
-                req.setDropLng(baseRequest.getDropLng());
-                req.setPickupZoneReadableId(baseRequest.getPickupZoneReadableId());
-                req.setDropZoneReadableId(baseRequest.getDropZoneReadableId());
-                req.setCouponCode(baseRequest.getCouponCode());
-                req.setUserId(baseRequest.getUserId());
+                FareEstimateResponse estimate = null;
                 
-                FareEstimateResponse estimate = fareEngine.estimate(req);
-                estimates.add(estimate);
+                // Try to use ServiceType enum if serviceId matches
+                try {
+                    ServiceType serviceType = ServiceType.valueOf(service.getServiceId().toUpperCase());
+                    FareEstimateRequest req = new FareEstimateRequest();
+                    req.setServiceType(serviceType);
+                    req.setDistanceKm(baseRequest.getDistanceKm());
+                    req.setDurationMin(baseRequest.getDurationMin());
+                    req.setPickupLat(baseRequest.getPickupLat());
+                    req.setPickupLng(baseRequest.getPickupLng());
+                    req.setDropLat(baseRequest.getDropLat());
+                    req.setDropLng(baseRequest.getDropLng());
+                    req.setPickupZoneReadableId(baseRequest.getPickupZoneReadableId());
+                    req.setDropZoneReadableId(baseRequest.getDropZoneReadableId());
+                    req.setCouponCode(baseRequest.getCouponCode());
+                    req.setUserId(baseRequest.getUserId());
+                    
+                    estimate = fareEngine.estimate(req);
+                } catch (IllegalArgumentException e) {
+                    // Service ID doesn't match enum - calculate fare using ServiceConfig directly
+                    estimate = calculateFareFromServiceConfig(service, baseRequest);
+                }
+                
+                if (estimate != null) {
+                    estimates.add(estimate);
+                }
             } catch (Exception e) {
-                // Skip if fare calculation fails for this type
+                // Skip if fare calculation fails for this service
+                // Log error for debugging
+                System.err.println("Failed to calculate fare for service " + service.getServiceId() + ": " + e.getMessage());
             }
         }
         
@@ -136,6 +162,97 @@ public class CustomerServicesController {
         estimates.sort(Comparator.comparingDouble(FareEstimateResponse::getFinalTotal));
         
         return ResponseEntity.ok(estimates);
+    }
+    
+    /**
+     * Calculate fare estimate using ServiceConfig directly (for services not in ServiceType enum)
+     * Also applies zone-specific trip fares if available
+     */
+    private FareEstimateResponse calculateFareFromServiceConfig(ServiceConfig service, FareEstimateRequest baseRequest) {
+        // Start with fare rates from ServiceConfig
+        double baseFare = service.getBaseFare() != null ? service.getBaseFare() : 0.0;
+        double perKmRate = service.getPerKmRate() != null ? service.getPerKmRate() : 0.0;
+        double perMinRate = service.getPerMinRate() != null ? service.getPerMinRate() : 0.0;
+        
+        // Apply zone-specific trip fare overrides if available
+        ZoneV2 pickupZone = null;
+        if (baseRequest.getPickupZoneReadableId() != null) {
+            pickupZone = zoneRepository.findByNameAndIsActiveTrue(baseRequest.getPickupZoneReadableId()).orElse(null);
+        }
+        ZoneV2 dropZone = null;
+        if (pickupZone == null && baseRequest.getDropZoneReadableId() != null) {
+            dropZone = zoneRepository.findByNameAndIsActiveTrue(baseRequest.getDropZoneReadableId()).orElse(null);
+        }
+        
+        ZoneV2 zoneForOverride = pickupZone != null ? pickupZone : dropZone;
+        if (zoneForOverride != null) {
+            // Try to find vehicle category by serviceId or vehicleType
+            Optional<VehicleCategory> catOpt = vehicleCategoryRepository.findByType(service.getServiceId());
+            if (catOpt.isEmpty()) {
+                catOpt = vehicleCategoryRepository.findByName(service.getServiceId());
+            }
+            if (catOpt.isEmpty() && service.getVehicleType() != null) {
+                catOpt = vehicleCategoryRepository.findByType(service.getVehicleType().toUpperCase());
+            }
+            
+            if (catOpt.isPresent()) {
+                Optional<TripFare> tfOpt = tripFareRepository.findFirstByZoneAndVehicleCategory(zoneForOverride, catOpt.get());
+                if (tfOpt.isPresent()) {
+                    TripFare tf = tfOpt.get();
+                    if (tf.getBaseFare() != null) baseFare = tf.getBaseFare().doubleValue();
+                    if (tf.getBaseFarePerKm() != null) perKmRate = tf.getBaseFarePerKm().doubleValue();
+                    if (tf.getTimeRatePerMinOverride() != null) perMinRate = tf.getTimeRatePerMinOverride().doubleValue();
+                }
+            }
+        }
+        
+        // Calculate fare components
+        double distanceFare = round2(baseRequest.getDistanceKm() * perKmRate);
+        double timeFare = round2(baseRequest.getDurationMin() * perMinRate);
+        double total = round2(baseFare + distanceFare + timeFare);
+        
+        // Apply minimum fare if configured
+        if (service.getMinimumFare() != null && service.getMinimumFare() > 0 && total < service.getMinimumFare()) {
+            total = service.getMinimumFare();
+        }
+        
+        // Build vehicle info from ServiceConfig
+        FareEstimateResponse.VehicleInfo vehicleInfo = FareEstimateResponse.VehicleInfo.builder()
+                .serviceId(service.getServiceId())
+                .name(service.getName())
+                .displayName(service.getDisplayName() != null ? service.getDisplayName() : service.getName())
+                .icon(service.getIcon())
+                .iconUrl(service.getIconUrl())
+                .capacity(service.getCapacity() != null ? service.getCapacity() : 1)
+                .vehicleType(service.getVehicleType())
+                .category(service.getCategory())
+                .estimatedArrival(service.getEstimatedArrival())
+                .description(service.getDescription())
+                .build();
+        
+        return FareEstimateResponse.builder()
+                .currency("INR") // Default currency
+                .baseFare(baseFare)
+                .distanceKm(baseRequest.getDistanceKm())
+                .perKmRate(perKmRate)
+                .distanceFare(distanceFare)
+                .durationMin(baseRequest.getDurationMin())
+                .timeRatePerMin(perMinRate)
+                .timeFare(timeFare)
+                .cancellationFee(service.getCancellationFee() != null ? service.getCancellationFee() : 0.0)
+                .returnFee(0.0)
+                .total(total)
+                .discount(0.0) // Coupon discount can be applied later if needed
+                .finalTotal(total)
+                .appliedCoupon(null)
+                .extraFareStatus(com.ridefast.ride_fast_backend.enums.ExtraFareStatus.NONE)
+                .extraFareReason(null)
+                .vehicle(vehicleInfo)
+                .build();
+    }
+    
+    private static double round2(double v) {
+        return Math.round(v * 100.0) / 100.0;
     }
 
     /**
