@@ -1,5 +1,6 @@
 package com.ridefast.ride_fast_backend.service.impl;
 
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,9 +16,11 @@ import com.ridefast.ride_fast_backend.enums.UserRole;
 import com.ridefast.ride_fast_backend.enums.VerificationStatus;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.Driver;
+import com.ridefast.ride_fast_backend.model.DriverDetails;
 import com.ridefast.ride_fast_backend.model.License;
 import com.ridefast.ride_fast_backend.model.Ride;
 import com.ridefast.ride_fast_backend.model.Vehicle;
+import com.ridefast.ride_fast_backend.repository.DriverDetailsRepository;
 import com.ridefast.ride_fast_backend.repository.DriverRepository;
 import com.ridefast.ride_fast_backend.repository.LicenseRepository;
 import com.ridefast.ride_fast_backend.repository.VehicleRepository;
@@ -33,6 +36,7 @@ import lombok.RequiredArgsConstructor;
 public class DriverServiceImpl implements DriverService {
 
   private final DriverRepository driverRepository;
+  private final DriverDetailsRepository driverDetailsRepository;
   private final LicenseRepository licenseRepository;
   private final VehicleRepository vehicleRepository;
 
@@ -106,10 +110,19 @@ public class DriverServiceImpl implements DriverService {
     List<Driver> allDrivers = driverRepository.findAll();
     List<Driver> availableDrivers = new ArrayList<>();
     for (Driver driver : allDrivers) {
+      // Check if driver is online (primary check on Driver model)
+      if (driver.getIsOnline() == null || !driver.getIsOnline()) {
+        continue; // Skip offline drivers
+      }
+      
+      // Check if driver has active ride
       if (driver.getCurrentRide() != null && driver.getCurrentRide().getStatus() != RideStatus.COMPLETED)
         continue;
+      
+      // Check if driver declined this ride
       if (ride.getDeclinedDrivers().contains(driver.getId()))
         continue;
+      
       // double driverLatitude = driver.getLatitude();
       // double driverLongitude = driver.getLongitude();
       // double distance = calculatorService.calculateDistance(driverLatitude,
@@ -234,6 +247,33 @@ public class DriverServiceImpl implements DriverService {
     // Update password
     driver.setPassword(passwordEncoder.encode(newPassword));
     driverRepository.save(driver);
+  }
+
+  @Override
+  public void updateOnlineStatus(String jwtToken, boolean isOnline) throws ResourceNotFoundException {
+    Driver driver = getRequestedDriverProfile(jwtToken);
+    
+    // Update online status directly on Driver
+    driver.setIsOnline(isOnline);
+    driverRepository.save(driver);
+    
+    // Also update DriverDetails if it exists (for backward compatibility)
+    try {
+      DriverDetails details = driverDetailsRepository.findByUser_Id(driver.getId()).orElse(null);
+      if (details != null) {
+        details.setIsOnline(isOnline ? "true" : "false");
+        details.setAvailabilityStatus(isOnline ? "available" : "unavailable");
+        if (isOnline) {
+          details.setOnline(LocalTime.now());
+        } else {
+          details.setOffline(LocalTime.now());
+        }
+        driverDetailsRepository.save(details);
+      }
+    } catch (Exception e) {
+      // Ignore if DriverDetails doesn't exist or can't be updated
+      // Driver status is already updated above
+    }
   }
 
 }

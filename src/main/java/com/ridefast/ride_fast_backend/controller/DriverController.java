@@ -132,4 +132,26 @@ public class DriverController {
       ));
     }
   }
+
+  @PutMapping("/status/online")
+  public ResponseEntity<Map<String, Object>> setOnlineStatus(
+      @RequestHeader("Authorization") String jwtToken,
+      @RequestBody Map<String, Boolean> request) throws ResourceNotFoundException {
+    
+    Boolean isOnline = request.get("isOnline");
+    if (isOnline == null) {
+      return ResponseEntity.badRequest().body(Map.of(
+          "success", false,
+          "message", "isOnline field is required"
+      ));
+    }
+    
+    driverService.updateOnlineStatus(jwtToken, isOnline);
+    
+    return ResponseEntity.ok(Map.of(
+        "success", true,
+        "isOnline", isOnline,
+        "message", isOnline ? "Driver is now online" : "Driver is now offline"
+    ));
+  }
 }

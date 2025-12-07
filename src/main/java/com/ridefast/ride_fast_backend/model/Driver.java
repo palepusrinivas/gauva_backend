@@ -71,4 +71,9 @@ public class Driver {
     private String bankVerificationNotes;
     private LocalDateTime bankVerifiedAt;
 
+    // Online/Offline status
+    @Column(name = "is_online", nullable = false)
+    @Builder.Default
+    private Boolean isOnline = false;
+
 }
