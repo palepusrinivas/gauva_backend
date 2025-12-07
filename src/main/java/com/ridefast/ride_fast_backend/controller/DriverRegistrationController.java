@@ -170,48 +170,49 @@ public class DriverRegistrationController {
                     .build();
             
             // Upload documents to Firebase Storage
-            String basePath = "documents/drivers/" + driverId;
+            // Note: documentsGsPath already includes "documents/" prefix, so we only need "drivers/{id}/..."
+            String basePath = "drivers/" + driverId;
             
             if (profilePhoto != null && !profilePhoto.isEmpty()) {
                 String photoKey = uploadDocument(profilePhoto, basePath + "/profile");
                 kyc.setPhotoKey(photoKey);
-                log.info("Uploaded profile photo: {}", photoKey);
+                log.info("Uploaded profile photo: key={}", photoKey);
             }
             
             if (licenseFront != null && !licenseFront.isEmpty()) {
                 String key = uploadDocument(licenseFront, basePath + "/license_front");
                 kyc.setLicenseFrontKey(key);
-                log.info("Uploaded license front: {}", key);
+                log.info("Uploaded license front: key={}", key);
             }
             
             if (licenseBack != null && !licenseBack.isEmpty()) {
                 String key = uploadDocument(licenseBack, basePath + "/license_back");
                 kyc.setLicenseBackKey(key);
-                log.info("Uploaded license back: {}", key);
+                log.info("Uploaded license back: key={}", key);
             }
             
             if (rcFront != null && !rcFront.isEmpty()) {
                 String key = uploadDocument(rcFront, basePath + "/rc_front");
                 kyc.setRcFrontKey(key);
-                log.info("Uploaded RC front: {}", key);
+                log.info("Uploaded RC front: key={}", key);
             }
             
             if (rcBack != null && !rcBack.isEmpty()) {
                 String key = uploadDocument(rcBack, basePath + "/rc_back");
                 kyc.setRcBackKey(key);
-                log.info("Uploaded RC back: {}", key);
+                log.info("Uploaded RC back: key={}", key);
             }
             
             if (aadhaarFront != null && !aadhaarFront.isEmpty()) {
                 String key = uploadDocument(aadhaarFront, basePath + "/aadhaar_front");
                 kyc.setAadhaarFrontKey(key);
-                log.info("Uploaded Aadhaar front: {}", key);
+                log.info("Uploaded Aadhaar front: key={}", key);
             }
             
             if (aadhaarBack != null && !aadhaarBack.isEmpty()) {
                 String key = uploadDocument(aadhaarBack, basePath + "/aadhaar_back");
                 kyc.setAadhaarBackKey(key);
-                log.info("Uploaded Aadhaar back: {}", key);
+                log.info("Uploaded Aadhaar back: key={}", key);
             }
             
             // Save KYC record
@@ -296,10 +297,16 @@ public class DriverRegistrationController {
         try {
             String extension = getFileExtension(file.getOriginalFilename());
             String fileName = basePath + "_" + UUID.randomUUID().toString().substring(0, 8) + extension;
-            return storageService.uploadFile(file, fileName);
+            log.info("Uploading document: fileName={}, size={} bytes", fileName, file.getSize());
+            String storageKey = storageService.uploadFile(file, fileName);
+            if (storageKey == null || storageKey.isBlank()) {
+                throw new RuntimeException("Storage service returned null/blank key for file: " + fileName);
+            }
+            log.info("Document uploaded successfully: storageKey={}", storageKey);
+            return storageKey;
         } catch (Exception e) {
-            log.error("Failed to upload document: {}", e.getMessage());
-            return null;
+            log.error("Failed to upload document to basePath '{}': {}", basePath, e.getMessage(), e);
+            throw new RuntimeException("Document upload failed: " + e.getMessage(), e);
         }
     }
     

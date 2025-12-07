@@ -30,7 +30,9 @@ import com.ridefast.ride_fast_backend.service.ShortCodeService;
 import com.ridefast.ride_fast_backend.util.JwtTokenHelper;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DriverServiceImpl implements DriverService {
@@ -258,21 +260,25 @@ public class DriverServiceImpl implements DriverService {
     driverRepository.save(driver);
     
     // Also update DriverDetails if it exists (for backward compatibility)
+    // Use driverId (String) field instead of user.id since MyUser.id is String
     try {
-      DriverDetails details = driverDetailsRepository.findByUser_Id(driver.getId()).orElse(null);
-      if (details != null) {
-        details.setIsOnline(isOnline ? "true" : "false");
-        details.setAvailabilityStatus(isOnline ? "available" : "unavailable");
-        if (isOnline) {
-          details.setOnline(LocalTime.now());
-        } else {
-          details.setOffline(LocalTime.now());
+      if (driver.getShortCode() != null) {
+        DriverDetails details = driverDetailsRepository.findByDriverId(driver.getShortCode()).orElse(null);
+        if (details != null) {
+          details.setIsOnline(isOnline ? "true" : "false");
+          details.setAvailabilityStatus(isOnline ? "available" : "unavailable");
+          if (isOnline) {
+            details.setOnline(LocalTime.now());
+          } else {
+            details.setOffline(LocalTime.now());
+          }
+          driverDetailsRepository.save(details);
         }
-        driverDetailsRepository.save(details);
       }
     } catch (Exception e) {
       // Ignore if DriverDetails doesn't exist or can't be updated
       // Driver status is already updated above
+      log.warn("Could not update DriverDetails for driver {}: {}", driver.getId(), e.getMessage());
     }
   }
 

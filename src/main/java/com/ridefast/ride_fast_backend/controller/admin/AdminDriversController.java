@@ -219,14 +219,23 @@ public class AdminDriversController {
   }
 
   private String getPublicUrl(String key) {
-    if (key == null || key.isBlank()) return null;
+    if (key == null || key.isBlank()) {
+      log.warn("getPublicUrl called with null or blank key");
+      return null;
+    }
     // If key is already a full URL, return as is
     if (key.startsWith("http://") || key.startsWith("https://")) {
+      log.debug("Key is already a URL: {}", key);
       return key;
     }
     // Construct Firebase Storage public URL
     String bucket = storageBucket != null && !storageBucket.isBlank() ? storageBucket : "gauva-15d9a.firebasestorage.app";
-    return String.format("https://firebasestorage.googleapis.com/v0/b/%s/o/%s?alt=media",
-        bucket, java.net.URLEncoder.encode(key, java.nio.charset.StandardCharsets.UTF_8));
+    // URL encode the path component (not the bucket name)
+    String encodedKey = java.net.URLEncoder.encode(key, java.nio.charset.StandardCharsets.UTF_8)
+        .replace("+", "%20"); // Replace + with %20 for spaces
+    String url = String.format("https://firebasestorage.googleapis.com/v0/b/%s/o/%s?alt=media",
+        bucket, encodedKey);
+    log.debug("Generated public URL for key '{}': {}", key, url);
+    return url;
   }
 }

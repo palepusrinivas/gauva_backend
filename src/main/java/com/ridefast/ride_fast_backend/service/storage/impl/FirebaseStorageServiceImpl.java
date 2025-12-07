@@ -137,20 +137,35 @@ public class FirebaseStorageServiceImpl implements StorageService {
       // Use documents path for general file uploads, with 5MB limit
       String gsPath = put(data, contentType, objectName, documentsGsPath, 5 * 1024 * 1024);
       
-      // Return a public URL format
-      // Firebase Storage URLs: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?alt=media
-      GsInfo info = parseGs(gsPath);
-      // info.prefix() already contains the full path including objectName, don't add it again
-      String fullPath = info.prefix();
-      // Remove trailing slash if present
-      if (fullPath.endsWith("/")) {
-        fullPath = fullPath.substring(0, fullPath.length() - 1);
+      // Extract the storage key/path from gs:// path
+      // gsPath format: gs://bucket/path/to/file
+      // We need to return just the path part (without gs://bucket/) so getPublicUrl can construct the URL
+      if (gsPath == null || !gsPath.startsWith("gs://")) {
+        throw new RuntimeException("Invalid gsPath returned from put(): " + gsPath);
       }
-      String encodedPath = java.net.URLEncoder.encode(fullPath, "UTF-8");
-      return String.format("https://firebasestorage.googleapis.com/v0/b/%s/o/%s?alt=media", 
-          info.bucket(), encodedPath);
+      
+      // Extract path after gs://bucket/
+      String rest = gsPath.substring(5); // after "gs://"
+      int slashIndex = rest.indexOf('/');
+      if (slashIndex < 0) {
+        throw new RuntimeException("Invalid gsPath format: " + gsPath);
+      }
+      
+      // Get the object path (everything after bucket name)
+      String objectPath = rest.substring(slashIndex + 1);
+      
+      // Remove trailing slash if present
+      if (objectPath.endsWith("/")) {
+        objectPath = objectPath.substring(0, objectPath.length() - 1);
+      }
+      
+      log.info("Uploaded file successfully. Storage key: {}", objectPath);
+      
+      // Return the storage key (path) instead of full URL
+      // This allows getPublicUrl() to construct the URL properly
+      return objectPath;
     } catch (Exception e) {
-      log.error("Failed to upload file: {}", e.getMessage());
+      log.error("Failed to upload file: {}", e.getMessage(), e);
       throw new RuntimeException("File upload failed: " + e.getMessage());
     }
   }
