@@ -60,8 +60,13 @@ public class RideServiceImpl implements RideService {
   public Ride createRide(MyUser user, Driver nearestDriver, double pickupLatitude, double pickupLongitude,
       double destinationLatitude, double destinationLongitude, String pickupArea, String destinationArea) {
 
+    // Ensure driver is a managed entity (refresh from database if needed)
+    // This prevents "detached entity passed to persist" error
+    Driver managedDriver = driverRepository.findById(nearestDriver.getId())
+        .orElseThrow(() -> new RuntimeException("Driver not found: " + nearestDriver.getId()));
+
     Ride ride = Ride.builder()
-        .driver(nearestDriver)
+        .driver(managedDriver)
         .user(user)
         .pickupLatitude(pickupLatitude)
         .pickupLongitude(pickupLongitude)
@@ -104,7 +109,16 @@ public class RideServiceImpl implements RideService {
         ride.getPickupLongitude(), ride);
     Driver nearestDriver = driverService.getNearestDriver(availableDrivers, ride.getPickupLatitude(),
         ride.getPickupLongitude());
-    ride.setDriver(nearestDriver);
+    
+    // Ensure driver is a managed entity (refresh from database if needed)
+    if (nearestDriver != null) {
+      Driver managedDriver = driverRepository.findById(nearestDriver.getId())
+          .orElseThrow(() -> new RuntimeException("Driver not found: " + nearestDriver.getId()));
+      ride.setDriver(managedDriver);
+    } else {
+      ride.setDriver(null);
+    }
+    
     Ride savedRide = rideRepository.save(ride);
     return savedRide;
   }
