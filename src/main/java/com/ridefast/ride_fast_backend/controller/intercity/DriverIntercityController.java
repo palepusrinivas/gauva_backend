@@ -1,8 +1,10 @@
 package com.ridefast.ride_fast_backend.controller.intercity;
 
+import com.ridefast.ride_fast_backend.dto.intercity.DriverTripPublishRequest;
 import com.ridefast.ride_fast_backend.dto.intercity.IntercityOtpVerifyRequest;
 import com.ridefast.ride_fast_backend.dto.intercity.IntercityOtpVerifyResponse;
 import com.ridefast.ride_fast_backend.dto.intercity.IntercityTripDTO;
+import com.ridefast.ride_fast_backend.enums.IntercityBookingType;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.Driver;
 import com.ridefast.ride_fast_backend.model.intercity.IntercityBooking;
@@ -35,6 +37,72 @@ public class DriverIntercityController {
     private final IntercityBookingRepository bookingRepository;
     private final IntercityTripService tripService;
     private final DriverService driverService;
+    private final com.ridefast.ride_fast_backend.service.WalletService walletService;
+
+    /**
+     * Driver publishes a new intercity trip
+     * 
+     * POST /api/driver/intercity/publish
+     */
+    @PostMapping("/publish")
+    public ResponseEntity<?> publishTrip(
+            @RequestHeader("Authorization") String jwtToken,
+            @RequestBody DriverTripPublishRequest request
+    ) throws ResourceNotFoundException {
+        Driver driver = driverService.getRequestedDriverProfile(jwtToken);
+        
+        // Check minimum wallet balance (₹200)
+        try {
+            java.math.BigDecimal currentBalance = walletService.getBalance(
+                com.ridefast.ride_fast_backend.enums.WalletOwnerType.DRIVER,
+                driver.getId().toString()
+            );
+            
+            java.math.BigDecimal minBalance = new java.math.BigDecimal("200");
+            if (currentBalance.compareTo(minBalance) < 0) {
+                return ResponseEntity.status(org.springframework.http.HttpStatus.BAD_REQUEST)
+                    .body(java.util.Map.of(
+                        "error", "Insufficient wallet balance",
+                        "message", String.format("Driver must maintain minimum ₹200 balance. Current balance: ₹%s", currentBalance),
+                        "currentBalance", currentBalance,
+                        "minimumRequired", minBalance
+                    ));
+            }
+        } catch (Exception e) {
+            log.warn("Could not check wallet balance for driver {}: {}", driver.getId(), e.getMessage());
+            // Continue with trip creation if balance check fails
+        }
+        
+        boolean isPrivate = request.getBookingType() == IntercityBookingType.PRIVATE;
+        
+        // Create trip with driver's details
+        IntercityTrip trip = tripService.createTripByDriver(
+                driver.getId(),
+                request.getRouteId(),
+                request.getVehicleType(),
+                request.getPickupAddress(),
+                request.getPickupLatitude(),
+                request.getPickupLongitude(),
+                request.getDropAddress(),
+                request.getDropLatitude(),
+                request.getDropLongitude(),
+                request.getScheduledDeparture(),
+                isPrivate,
+                request.getTotalFare(),
+                request.getSeats(),
+                request.getReturnTrip(),
+                request.getReturnTripDeparture(),
+                request.getNightFareEnabled(),
+                request.getNightFareMultiplier(),
+                request.getDistanceKm(),
+                request.getPremiumNotification()
+        );
+        
+        log.info("Driver {} published trip {} - Type: {}, Vehicle: {}", 
+                driver.getId(), trip.getTripCode(), request.getBookingType(), request.getVehicleType());
+        
+        return ResponseEntity.ok(tripService.toDTO(trip));
+    }
 
     /**
      * Get driver's assigned intercity trips

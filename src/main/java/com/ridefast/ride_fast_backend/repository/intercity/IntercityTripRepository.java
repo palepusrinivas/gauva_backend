@@ -83,5 +83,20 @@ public interface IntercityTripRepository extends JpaRepository<IntercityTrip, Lo
      */
     @Query("SELECT t.status, COUNT(t) FROM IntercityTrip t GROUP BY t.status")
     List<Object[]> countByStatus();
+    
+    /**
+     * Find trips by route, driver, and status (for return trip guarantee)
+     */
+    @Query("""
+        SELECT t FROM IntercityTrip t 
+        WHERE (:routeId IS NULL OR t.route.id = :routeId)
+        AND (:driverId IS NULL OR t.driver.id = :driverId)
+        AND t.status IN :statuses
+        """)
+    List<IntercityTrip> findByRouteIdAndDriverIdAndStatusIn(
+        @Param("routeId") Long routeId,
+        @Param("driverId") Long driverId,
+        @Param("statuses") List<IntercityTripStatus> statuses
+    );
 }
 

@@ -38,12 +38,19 @@ public class IntercityBookingService {
     
     private final IntercityTripService tripService;
     private final IntercityPricingService pricingService;
+    private final com.ridefast.ride_fast_backend.service.WalletService walletService;
     
     /** Lock expiry time in minutes */
     private static final int SEAT_LOCK_MINUTES = 10;
     
     /** Payment timeout in minutes */
     private static final int PAYMENT_TIMEOUT_MINUTES = 15;
+    
+    /** Commission rate: 5% */
+    private static final BigDecimal COMMISSION_RATE = new BigDecimal("0.05");
+    
+    /** Minimum driver wallet balance: ₹200 */
+    private static final BigDecimal MIN_DRIVER_BALANCE = new BigDecimal("200");
     
     /**
      * Search for available trips and vehicle options
@@ -172,14 +179,14 @@ public class IntercityBookingService {
             trip.getTotalPrice() : 
             perSeatAmount.multiply(BigDecimal.valueOf(seatsToBook));
         
-        // Create booking
+        // Create booking - Set to HOLD status to prevent direct driver contact
         String bookingCode = generateBookingCode();
         IntercityBooking booking = IntercityBooking.builder()
             .bookingCode(bookingCode)
             .user(user)
             .trip(trip)
             .bookingType(request.getBookingType())
-            .status(IntercityBookingStatus.PENDING)
+            .status(IntercityBookingStatus.HOLD)  // Set to HOLD - admin must confirm
             .seatsBooked(seatsToBook)
             .totalAmount(totalAmount)
             .perSeatAmount(perSeatAmount)
@@ -232,17 +239,23 @@ public class IntercityBookingService {
      * Confirm booking after payment
      */
     @Transactional
-    public IntercityBookingResponse confirmBooking(Long bookingId, String razorpayPaymentId) throws ResourceNotFoundException {
+    public IntercityBookingResponse confirmBooking(Long bookingId, String razorpayPaymentId, IntercityPaymentMethod paymentMethod) throws ResourceNotFoundException {
         IntercityBooking booking = getBookingById(bookingId);
         
-        if (booking.getStatus() != IntercityBookingStatus.PENDING) {
-            throw new IllegalStateException("Booking is not in pending state");
+        if (booking.getStatus() != IntercityBookingStatus.PENDING && 
+            booking.getStatus() != IntercityBookingStatus.HOLD) {
+            throw new IllegalStateException("Booking is not in pending or hold state");
         }
+        
+        // Calculate commission (5% of total amount)
+        BigDecimal commissionAmount = booking.getTotalAmount().multiply(COMMISSION_RATE);
         
         // Update booking
         booking.setStatus(IntercityBookingStatus.CONFIRMED);
         booking.setPaymentStatus(PaymentStatus.COMPLETED);
         booking.setRazorpayPaymentId(razorpayPaymentId);
+        booking.setPaymentMethod(paymentMethod);
+        booking.setCommissionAmount(commissionAmount);
         booking.setConfirmedAt(LocalDateTime.now());
         
         // Confirm all seat bookings
@@ -251,11 +264,97 @@ public class IntercityBookingService {
             seat.setLockExpiry(null);
         }
         
+        // Deduct commission based on payment method
+        IntercityTrip trip = booking.getTrip();
+        if (trip.getDriver() != null) {
+            if (paymentMethod == IntercityPaymentMethod.UPI || 
+                paymentMethod == IntercityPaymentMethod.WALLET ||
+                paymentMethod == IntercityPaymentMethod.ONLINE) {
+                // Instant commission deduction for UPI/Wallet/Online
+                try {
+                    walletService.debit(
+                        com.ridefast.ride_fast_backend.enums.WalletOwnerType.DRIVER,
+                        trip.getDriver().getId().toString(),
+                        commissionAmount,
+                        "INTERCITY_COMMISSION",
+                        booking.getId().toString(),
+                        String.format("5%% commission for intercity booking %s", booking.getBookingCode())
+                    );
+                    booking.setCommissionDeducted(true);
+                    booking.setCommissionDeductedAt(LocalDateTime.now());
+                    log.info("Instant commission deducted: ₹{} for booking {} (Payment: {})", 
+                        commissionAmount, booking.getBookingCode(), paymentMethod);
+                } catch (IllegalArgumentException e) {
+                    log.error("Failed to deduct commission for booking {}: {}", 
+                        booking.getBookingCode(), e.getMessage());
+                    // Continue with booking confirmation even if commission deduction fails
+                    // Admin can manually deduct later
+                }
+            } else if (paymentMethod == IntercityPaymentMethod.CASH) {
+                // Cash payment - commission will be deducted at end of day
+                booking.setCommissionDeducted(false);
+                log.info("Cash payment - commission ₹{} will be deducted at end of day for booking {}", 
+                    commissionAmount, booking.getBookingCode());
+            }
+        }
+        
         bookingRepository.save(booking);
+        
+        // Check for auto-confirm: 3-4 seats booked within 30-45 mins
+        checkAndAutoConfirmTrip(booking.getTrip());
         
         log.info("Confirmed booking {}", booking.getBookingCode());
         
         return toResponse(booking);
+    }
+    
+    /**
+     * Overloaded method for backward compatibility (defaults to ONLINE payment)
+     */
+    @Transactional
+    public IntercityBookingResponse confirmBooking(Long bookingId, String razorpayPaymentId) throws ResourceNotFoundException {
+        return confirmBooking(bookingId, razorpayPaymentId, IntercityPaymentMethod.ONLINE);
+    }
+    
+    /**
+     * Auto-confirm trip if 3-4 seats booked within 30-45 minutes
+     */
+    @Transactional
+    public void checkAndAutoConfirmTrip(IntercityTrip trip) {
+        if (trip == null || trip.getIsPrivate()) {
+            return; // Skip for private bookings
+        }
+        
+        // Count confirmed bookings in last 45 minutes
+        LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(45);
+        List<IntercityBooking> recentBookings = bookingRepository.findByTripIdAndStatusAndCreatedAtAfter(
+                trip.getId(), 
+                IntercityBookingStatus.CONFIRMED, 
+                cutoffTime
+        );
+        
+        int totalSeatsBooked = recentBookings.stream()
+                .mapToInt(IntercityBooking::getSeatsBooked)
+                .sum();
+        
+        // Auto-confirm if 3-4 seats booked within 30-45 mins
+        if (totalSeatsBooked >= 3 && totalSeatsBooked <= 4) {
+            LocalDateTime firstBookingTime = recentBookings.stream()
+                    .map(IntercityBooking::getCreatedAt)
+                    .min(LocalDateTime::compareTo)
+                    .orElse(LocalDateTime.now());
+            
+            long minutesSinceFirstBooking = java.time.Duration.between(firstBookingTime, LocalDateTime.now()).toMinutes();
+            
+            if (minutesSinceFirstBooking >= 30 && minutesSinceFirstBooking <= 45) {
+                // Auto-confirm: Trip is ready for dispatch
+                trip.setStatus(com.ridefast.ride_fast_backend.enums.IntercityTripStatus.MIN_REACHED);
+                tripRepository.save(trip);
+                
+                log.info("Auto-confirmed trip {} - {} seats booked within {} minutes", 
+                        trip.getTripCode(), totalSeatsBooked, minutesSinceFirstBooking);
+            }
+        }
     }
     
     /**
@@ -417,12 +516,19 @@ public class IntercityBookingService {
             .currentPerHeadPrice(trip.getCurrentPerHeadPrice())
             .build();
         
-        // Add driver info if assigned
+        // Add driver info if assigned - Hide phone number if booking is on HOLD
         if (trip.getDriver() != null) {
+            String driverPhone = null;
+            // Only show driver phone if booking is CONFIRMED or later (not HOLD)
+            if (booking.getStatus() != IntercityBookingStatus.HOLD && 
+                booking.getStatus() != IntercityBookingStatus.PENDING) {
+                driverPhone = trip.getDriver().getMobile();
+            }
+            
             tripInfo.setDriver(IntercityBookingResponse.DriverInfo.builder()
                 .driverId(trip.getDriver().getId())
                 .name(trip.getDriver().getName())
-                .phone(trip.getDriver().getMobile())
+                .phone(driverPhone)  // null if HOLD status
                 .build());
         }
         
@@ -488,6 +594,71 @@ public class IntercityBookingService {
                 booking.setCancelledAt(LocalDateTime.now());
                 bookingRepository.save(booking);
             }
+        }
+    }
+    
+    /**
+     * Scheduled job to deduct commission for cash payments (runs at end of day - 11 PM)
+     * Deducts 5% commission from driver wallets for all cash payments completed today
+     */
+    @Scheduled(cron = "0 0 23 * * *") // 11 PM daily
+    @Transactional
+    public void deductCashCommissions() {
+        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime endOfDay = LocalDateTime.now();
+        
+        // Find all cash payments completed today that haven't had commission deducted
+        List<IntercityBooking> cashBookings = bookingRepository.findAll().stream()
+            .filter(b -> b.getPaymentMethod() == IntercityPaymentMethod.CASH)
+            .filter(b -> b.getPaymentStatus() == PaymentStatus.COMPLETED)
+            .filter(b -> !Boolean.TRUE.equals(b.getCommissionDeducted()))
+            .filter(b -> b.getConfirmedAt() != null && 
+                        b.getConfirmedAt().isAfter(startOfDay) && 
+                        b.getConfirmedAt().isBefore(endOfDay))
+            .collect(Collectors.toList());
+        
+        int successCount = 0;
+        int failCount = 0;
+        
+        for (IntercityBooking booking : cashBookings) {
+            IntercityTrip trip = booking.getTrip();
+            if (trip == null || trip.getDriver() == null) {
+                continue;
+            }
+            
+            try {
+                BigDecimal commissionAmount = booking.getCommissionAmount();
+                if (commissionAmount == null) {
+                    commissionAmount = booking.getTotalAmount().multiply(COMMISSION_RATE);
+                    booking.setCommissionAmount(commissionAmount);
+                }
+                
+                walletService.debit(
+                    com.ridefast.ride_fast_backend.enums.WalletOwnerType.DRIVER,
+                    trip.getDriver().getId().toString(),
+                    commissionAmount,
+                    "INTERCITY_COMMISSION_CASH",
+                    booking.getId().toString(),
+                    String.format("5%% commission for cash payment - booking %s", booking.getBookingCode())
+                );
+                
+                booking.setCommissionDeducted(true);
+                booking.setCommissionDeductedAt(LocalDateTime.now());
+                bookingRepository.save(booking);
+                
+                successCount++;
+                log.info("Deducted cash commission ₹{} for booking {} (Driver: {})", 
+                    commissionAmount, booking.getBookingCode(), trip.getDriver().getId());
+            } catch (IllegalArgumentException e) {
+                failCount++;
+                log.error("Failed to deduct cash commission for booking {}: {}", 
+                    booking.getBookingCode(), e.getMessage());
+            }
+        }
+        
+        if (cashBookings.size() > 0) {
+            log.info("End-of-day cash commission deduction completed: {} successful, {} failed", 
+                successCount, failCount);
         }
     }
     

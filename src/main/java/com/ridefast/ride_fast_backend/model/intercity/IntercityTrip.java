@@ -106,6 +106,38 @@ public class IntercityTrip {
     @Builder.Default
     private Boolean isPrivate = false;
 
+    /** Return trip option - if true, driver will return on same route */
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean returnTrip = false;
+
+    /** Return trip scheduled departure time (if returnTrip is true) */
+    private LocalDateTime returnTripDeparture;
+
+    /** Night fare multiplier (e.g., 1.2 for 20% extra) */
+    @Column(precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal nightFareMultiplier = BigDecimal.ONE;
+
+    /** Whether night fare is enabled */
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean nightFareEnabled = false;
+
+    /** Distance in KM (editable by driver) */
+    @Column(precision = 8, scale = 2)
+    private BigDecimal distanceKm;
+
+    /** Premium notification option (paid feature) */
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean premiumNotification = false;
+
+    /** Return trip guarantee: minimum 2 seats if UP trip is filled */
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean returnTripGuarantee = false;
+
     /** Seat bookings for this trip */
     @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

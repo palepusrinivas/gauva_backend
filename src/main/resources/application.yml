@@ -3,7 +3,10 @@ server:
 
 # Socket.IO server configuration
 # Note: Socket.IO runs on a separate Netty server, so it needs its own port
+# For Azure App Service, set SOCKETIO_ENABLED=false or socketio.enabled=false
+# Azure only exposes one port, so Socket.IO cannot run on a separate port
 socketio:
+  enabled: true  # Set to false to disable Socket.IO (useful for Azure App Service)
   port: 9090  # Separate port for Socket.IO (default: 9090)
   host: 0.0.0.0
 

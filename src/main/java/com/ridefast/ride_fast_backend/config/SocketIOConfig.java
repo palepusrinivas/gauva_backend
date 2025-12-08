@@ -31,9 +31,34 @@ public class SocketIOConfig {
     private SocketIOServer server;
 
     @Bean
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        name = "socketio.enabled", 
+        havingValue = "true", 
+        matchIfMissing = true
+    )
     public SocketIOServer socketIOServer() {
+        // Check if Socket.IO is enabled (useful for Azure App Service where separate ports aren't available)
+        String socketIOEnabled = System.getenv("SOCKETIO_ENABLED");
+        if (socketIOEnabled != null && !Boolean.parseBoolean(socketIOEnabled)) {
+            log.warn("Socket.IO is disabled via SOCKETIO_ENABLED environment variable");
+            return null;
+        }
+        
         com.corundumstudio.socketio.Configuration config = new com.corundumstudio.socketio.Configuration();
         config.setHostname(socketIOHost);
+        
+        // For Azure App Service, try to use the same port as Spring Boot
+        // Azure only exposes one port, so we need to use the main application port
+        String serverPort = System.getenv("SERVER_PORT");
+        if (serverPort != null) {
+            try {
+                socketIOPort = Integer.parseInt(serverPort);
+                log.info("Using SERVER_PORT environment variable for Socket.IO: {}", socketIOPort);
+            } catch (NumberFormatException e) {
+                log.warn("Invalid SERVER_PORT, using configured port: {}", socketIOPort);
+            }
+        }
+        
         config.setPort(socketIOPort);
         config.setAllowCustomRequests(true);
         config.setUpgradeTimeout(10000);

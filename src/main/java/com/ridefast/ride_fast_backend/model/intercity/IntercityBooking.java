@@ -2,6 +2,7 @@ package com.ridefast.ride_fast_backend.model.intercity;
 
 import com.ridefast.ride_fast_backend.enums.IntercityBookingStatus;
 import com.ridefast.ride_fast_backend.enums.IntercityBookingType;
+import com.ridefast.ride_fast_backend.enums.IntercityPaymentMethod;
 import com.ridefast.ride_fast_backend.enums.PaymentStatus;
 import com.ridefast.ride_fast_backend.model.MyUser;
 import jakarta.persistence.*;
@@ -66,11 +67,26 @@ public class IntercityBooking {
     @Builder.Default
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 
+    /** Payment method */
+    @Enumerated(EnumType.STRING)
+    private IntercityPaymentMethod paymentMethod;
+
     /** Razorpay order ID */
     private String razorpayOrderId;
 
     /** Razorpay payment ID */
     private String razorpayPaymentId;
+    
+    /** Commission amount deducted (5% of total amount) */
+    @Column(precision = 10, scale = 2)
+    private BigDecimal commissionAmount;
+    
+    /** Whether commission has been deducted */
+    @Builder.Default
+    private Boolean commissionDeducted = false;
+    
+    /** Time when commission was deducted */
+    private LocalDateTime commissionDeductedAt;
 
     /** Contact phone for booking */
     private String contactPhone;

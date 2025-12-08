@@ -20,12 +20,21 @@ public class SocketIOServerRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        if (socketIOServer == null) {
+            log.info("Socket.IO server is disabled, skipping startup");
+            return;
+        }
+        
         try {
             socketIOServer.start();
-            log.info("Socket.IO server started successfully");
+            log.info("Socket.IO server started successfully on port {}", 
+                socketIOServer.getConfiguration().getPort());
         } catch (Exception e) {
-            log.error("Failed to start Socket.IO server", e);
-            throw new RuntimeException("Socket.IO server startup failed", e);
+            log.error("Failed to start Socket.IO server. This is expected on Azure App Service " +
+                    "where only one port is exposed. Socket.IO will not be available.", e);
+            // Don't throw exception - allow app to continue without Socket.IO
+            // Azure App Service only exposes the main application port, so Socket.IO can't run
+            log.warn("Application will continue without Socket.IO support. Use STOMP WebSocket at /ws instead.");
         }
     }
 }

@@ -99,7 +99,91 @@ public class IntercityTripService {
     }
     
     /**
+     * Create a trip published by driver with all options
+     */
+    @Transactional
+    public IntercityTrip createTripByDriver(
+            Long driverId,
+            Long routeId,
+            IntercityVehicleType vehicleType,
+            String pickupAddress,
+            Double pickupLat,
+            Double pickupLng,
+            String dropAddress,
+            Double dropLat,
+            Double dropLng,
+            LocalDateTime scheduledDeparture,
+            boolean isPrivate,
+            BigDecimal totalFare,
+            Integer seats,
+            Boolean returnTrip,
+            LocalDateTime returnTripDeparture,
+            Boolean nightFareEnabled,
+            BigDecimal nightFareMultiplier,
+            BigDecimal distanceKm,
+            Boolean premiumNotification
+    ) throws ResourceNotFoundException {
+        IntercityVehicleConfig config = vehicleConfigRepository.findByVehicleType(vehicleType)
+            .orElseThrow(() -> new ResourceNotFoundException("VehicleConfig", "type", vehicleType.name()));
+        
+        IntercityRoute route = null;
+        if (routeId != null) {
+            route = routeRepository.findById(routeId).orElse(null);
+        }
+        
+        // Use driver's specified fare, or default from config
+        BigDecimal totalPrice = totalFare != null ? totalFare : config.getTotalPrice();
+        if (route != null && route.getPriceMultiplier() != null) {
+            totalPrice = totalPrice.multiply(route.getPriceMultiplier());
+        }
+        
+        // Apply night fare multiplier if enabled
+        if (Boolean.TRUE.equals(nightFareEnabled) && nightFareMultiplier != null) {
+            totalPrice = totalPrice.multiply(nightFareMultiplier);
+        }
+        
+        // Generate unique trip code
+        String tripCode = generateTripCode();
+        
+        // Determine total seats
+        int totalSeats = seats != null ? seats : config.getMaxSeats();
+        if (isPrivate) {
+            totalSeats = config.getMaxSeats();
+        }
+        
+        IntercityTrip trip = IntercityTrip.builder()
+            .tripCode(tripCode)
+            .route(route)
+            .vehicleType(vehicleType)
+            .vehicleConfig(config)
+            .status(IntercityTripStatus.PENDING)
+            .totalSeats(totalSeats)
+            .seatsBooked(0)
+            .minSeats(isPrivate ? totalSeats : config.getMinSeats())
+            .totalPrice(totalPrice)
+            .currentPerHeadPrice(totalPrice)
+            .scheduledDeparture(scheduledDeparture != null ? scheduledDeparture : LocalDateTime.now().plusMinutes(30))
+            .pickupAddress(pickupAddress)
+            .pickupLatitude(pickupLat)
+            .pickupLongitude(pickupLng)
+            .dropAddress(dropAddress)
+            .dropLatitude(dropLat)
+            .dropLongitude(dropLng)
+            .isPrivate(isPrivate)
+            .returnTrip(returnTrip != null ? returnTrip : false)
+            .returnTripDeparture(returnTripDeparture)
+            .nightFareEnabled(nightFareEnabled != null ? nightFareEnabled : false)
+            .nightFareMultiplier(nightFareMultiplier != null ? nightFareMultiplier : BigDecimal.ONE)
+            .distanceKm(distanceKm)
+            .premiumNotification(premiumNotification != null ? premiumNotification : false)
+            .build();
+        
+        return tripRepository.save(trip);
+    }
+    
+    /**
      * Find available trips for pooling
+     * Returns trips sorted by lowest price (per head) first
      */
     public List<IntercityTrip> findAvailableTripsForPooling(
             IntercityVehicleType vehicleType,
@@ -114,6 +198,10 @@ public class IntercityTripService {
         return tripRepository.findAvailableTripsForPooling(validStatuses, vehicleType, LocalDateTime.now())
             .stream()
             .filter(t -> t.getAvailableSeats() >= seatsNeeded)
+            .sorted((t1, t2) -> {
+                // Sort by current per-head price (lowest first)
+                return t1.getCurrentPerHeadPrice().compareTo(t2.getCurrentPerHeadPrice());
+            })
             .collect(Collectors.toList());
     }
     
@@ -278,6 +366,52 @@ public class IntercityTripService {
         trip.setStatus(IntercityTripStatus.COMPLETED);
         trip.setActualArrival(LocalDateTime.now());
         tripRepository.save(trip);
+        
+        // Handle return trip guarantee if UP trip is filled
+        handleReturnTripGuarantee(trip);
+    }
+    
+    /**
+     * Return Trip Guarantee: If UP trip is filled, guarantee minimum 2 seats for return trip
+     */
+    @Transactional
+    public void handleReturnTripGuarantee(IntercityTrip upTrip) {
+        if (upTrip == null || !Boolean.TRUE.equals(upTrip.getReturnTrip())) {
+            return;
+        }
+        
+        // Check if UP trip is completed and filled
+        if (upTrip.getStatus() == IntercityTripStatus.COMPLETED && 
+            upTrip.getSeatsBooked() >= upTrip.getMinSeats()) {
+            
+            // Find return trip (same route, opposite direction, same driver)
+            List<IntercityTrip> returnTrips = tripRepository.findByRouteIdAndDriverIdAndStatusIn(
+                upTrip.getRoute() != null ? upTrip.getRoute().getId() : null,
+                upTrip.getDriver() != null ? upTrip.getDriver().getId() : null,
+                List.of(IntercityTripStatus.PENDING, IntercityTripStatus.FILLING)
+            );
+            
+            // Find return trip with matching pickup/drop (reversed)
+            IntercityTrip returnTrip = returnTrips.stream()
+                .filter(rt -> rt.getPickupAddress() != null && 
+                             rt.getDropAddress() != null &&
+                             rt.getPickupAddress().equals(upTrip.getDropAddress()) &&
+                             rt.getDropAddress().equals(upTrip.getPickupAddress()))
+                .findFirst()
+                .orElse(null);
+            
+            if (returnTrip != null && returnTrip.getSeatsBooked() < 2) {
+                // Guarantee minimum 2 seats for return trip
+                if (returnTrip.getMinSeats() < 2) {
+                    returnTrip.setMinSeats(2);
+                }
+                returnTrip.setReturnTripGuarantee(true);
+                tripRepository.save(returnTrip);
+                
+                log.info("Return trip guarantee activated for trip {} - Minimum 2 seats guaranteed", 
+                    returnTrip.getTripCode());
+            }
+        }
     }
     
     /**

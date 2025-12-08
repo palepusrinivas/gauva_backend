@@ -7,6 +7,9 @@ public enum IntercityBookingStatus {
     /** Booking created, payment pending */
     PENDING,
     
+    /** Booking on hold - waiting for admin confirmation (driver number hidden) */
+    HOLD,
+    
     /** Payment completed, waiting for trip dispatch */
     CONFIRMED,
     

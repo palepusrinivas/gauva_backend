@@ -5,7 +5,6 @@ import com.ridefast.ride_fast_backend.dto.RideDto;
 import com.ridefast.ride_fast_backend.enums.WalletOwnerType;
 import com.ridefast.ride_fast_backend.model.Driver;
 import com.ridefast.ride_fast_backend.model.Ride;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -20,10 +19,20 @@ import java.util.Map;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class SocketIOService {
 
     private final SocketIOServer socketIOServer;
+    
+    public SocketIOService(SocketIOServer socketIOServer) {
+        this.socketIOServer = socketIOServer; // Can be null if Socket.IO is disabled
+    }
+    
+    /**
+     * Check if Socket.IO server is available
+     */
+    private boolean isSocketIOAvailable() {
+        return socketIOServer != null;
+    }
 
     // ==================== RIDE STATUS UPDATES ====================
 
@@ -33,6 +42,10 @@ public class SocketIOService {
      * Rooms: "ride:{rideId}", "user:{userId}", "driver:{driverId}"
      */
     public void broadcastRideStatusUpdate(Ride ride, RideDto rideDto) {
+        if (!isSocketIOAvailable()) {
+            return; // Socket.IO not available (e.g., on Azure App Service)
+        }
+        
         if (ride == null || ride.getId() == null) {
             log.warn("Cannot broadcast ride update: ride or rideId is null");
             return;
@@ -74,6 +87,10 @@ public class SocketIOService {
      * Room: "drivers:available"
      */
     public void broadcastNewRideRequest(Ride ride, RideDto rideDto) {
+        if (!isSocketIOAvailable()) {
+            return;
+        }
+        
         if (ride == null || ride.getId() == null) {
             log.warn("Cannot broadcast new ride request: ride or rideId is null");
             return;
@@ -101,6 +118,10 @@ public class SocketIOService {
      * Rooms: "ride:{rideId}", "driver:{driverId}", "fleet:monitoring"
      */
     public void broadcastDriverLocation(Long rideId, Long driverId, Double lat, Double lng, Double heading) {
+        if (!isSocketIOAvailable()) {
+            return;
+        }
+        
         if (rideId == null || driverId == null || lat == null || lng == null) {
             log.warn("Cannot broadcast driver location: missing required fields");
             return;
@@ -140,6 +161,10 @@ public class SocketIOService {
      * Rooms: "driver:{driverId}", "fleet:monitoring"
      */
     public void broadcastDriverStatusUpdate(Driver driver) {
+        if (!isSocketIOAvailable()) {
+            return;
+        }
+        
         if (driver == null || driver.getId() == null) {
             log.warn("Cannot broadcast driver status: driver or driverId is null");
             return;
@@ -175,6 +200,10 @@ public class SocketIOService {
      */
     public void broadcastWalletUpdate(String userId, WalletOwnerType ownerType, BigDecimal balance, 
                                      String transactionType, String description) {
+        if (!isSocketIOAvailable()) {
+            return;
+        }
+        
         if (userId == null) {
             log.warn("Cannot broadcast wallet update: userId is null");
             return;
@@ -205,6 +234,10 @@ public class SocketIOService {
      * Room: "fleet:monitoring"
      */
     public void broadcastFleetStats(Map<String, Object> stats) {
+        if (!isSocketIOAvailable()) {
+            return;
+        }
+        
         try {
             stats.put("timestamp", LocalDateTime.now());
             socketIOServer.getRoomOperations("fleet:monitoring").sendEvent("fleet_stats", stats);
@@ -220,6 +253,10 @@ public class SocketIOService {
      * Room: "fleet:monitoring"
      */
     public void broadcastFleetDriversUpdate(Object drivers) {
+        if (!isSocketIOAvailable()) {
+            return;
+        }
+        
         try {
             Map<String, Object> payload = new HashMap<>();
             payload.put("drivers", drivers);
@@ -240,6 +277,10 @@ public class SocketIOService {
      */
     public void broadcastChatMessage(Long rideId, String senderId, String senderName, 
                                     String receiverId, String message, String messageId) {
+        if (!isSocketIOAvailable()) {
+            return;
+        }
+        
         if (rideId == null || message == null) {
             log.warn("Cannot broadcast chat message: missing required fields");
             return;
@@ -269,6 +310,9 @@ public class SocketIOService {
      * Get room operations for a specific room
      */
     public com.corundumstudio.socketio.BroadcastOperations getRoomOperations(String room) {
+        if (!isSocketIOAvailable()) {
+            return null;
+        }
         return socketIOServer.getRoomOperations(room);
     }
 
@@ -276,6 +320,9 @@ public class SocketIOService {
      * Broadcast to all connected clients
      */
     public void broadcastToAll(String event, Object data) {
+        if (!isSocketIOAvailable()) {
+            return;
+        }
         socketIOServer.getBroadcastOperations().sendEvent(event, data);
     }
 

@@ -120,7 +120,23 @@ public class IntercityBookingController {
             @RequestBody Map<String, String> payload
     ) throws ResourceNotFoundException {
         String paymentId = payload.get("razorpayPaymentId");
-        IntercityBookingResponse response = bookingService.confirmBooking(bookingId, paymentId);
+        String paymentMethodStr = payload.get("paymentMethod");
+        
+        // Default to ONLINE if not specified
+        com.ridefast.ride_fast_backend.enums.IntercityPaymentMethod paymentMethod = 
+            com.ridefast.ride_fast_backend.enums.IntercityPaymentMethod.ONLINE;
+        
+        if (paymentMethodStr != null) {
+            try {
+                paymentMethod = com.ridefast.ride_fast_backend.enums.IntercityPaymentMethod.valueOf(
+                    paymentMethodStr.toUpperCase()
+                );
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid payment method: {}, defaulting to ONLINE", paymentMethodStr);
+            }
+        }
+        
+        IntercityBookingResponse response = bookingService.confirmBooking(bookingId, paymentId, paymentMethod);
         return ResponseEntity.ok(response);
     }
     

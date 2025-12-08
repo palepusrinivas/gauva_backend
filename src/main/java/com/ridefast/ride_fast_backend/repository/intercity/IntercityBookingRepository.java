@@ -130,5 +130,20 @@ public interface IntercityBookingRepository extends JpaRepository<IntercityBooki
         AND b.otpVerified = true
         """)
     int countVerifiedByTripId(@Param("tripId") Long tripId);
+    
+    /**
+     * Find bookings by trip, status, and created after date (for auto-confirm)
+     */
+    @Query("""
+        SELECT b FROM IntercityBooking b 
+        WHERE b.trip.id = :tripId 
+        AND b.status = :status
+        AND b.createdAt >= :createdAfter
+        """)
+    List<IntercityBooking> findByTripIdAndStatusAndCreatedAtAfter(
+        @Param("tripId") Long tripId,
+        @Param("status") IntercityBookingStatus status,
+        @Param("createdAfter") LocalDateTime createdAfter
+    );
 }
 
