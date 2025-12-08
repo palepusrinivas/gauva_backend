@@ -5,7 +5,9 @@ import com.ridefast.ride_fast_backend.enums.IntercityVehicleType;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.MyUser;
 import com.ridefast.ride_fast_backend.model.intercity.IntercityRoute;
+import com.ridefast.ride_fast_backend.model.intercity.IntercityVehicleConfig;
 import com.ridefast.ride_fast_backend.repository.intercity.IntercityRouteRepository;
+import com.ridefast.ride_fast_backend.repository.intercity.IntercityVehicleConfigRepository;
 import com.ridefast.ride_fast_backend.service.intercity.IntercityBookingService;
 import com.ridefast.ride_fast_backend.service.intercity.IntercityPricingService;
 import com.ridefast.ride_fast_backend.service.intercity.IntercityTripService;
@@ -33,6 +35,7 @@ public class IntercityBookingController {
     private final IntercityTripService tripService;
     private final IntercityPricingService pricingService;
     private final IntercityRouteRepository routeRepository;
+    private final IntercityVehicleConfigRepository vehicleConfigRepository;
     
     /**
      * Get list of all active intercity routes/services
@@ -45,6 +48,42 @@ public class IntercityBookingController {
     public ResponseEntity<List<IntercityRoute>> getIntercityServices() {
         List<IntercityRoute> routes = routeRepository.findByIsActiveTrue();
         return ResponseEntity.ok(routes);
+    }
+    
+    /**
+     * Get list of all active intercity vehicle/service types
+     * 
+     * GET /api/customer/intercity/service-types
+     * 
+     * Returns all active vehicle types (CAR_NORMAL, CAR_PREMIUM_EXPRESS, AUTO_NORMAL, TATA_MAGIC_LITE)
+     * with their configuration details (pricing, seats, description, etc.)
+     */
+    @GetMapping("/service-types")
+    public ResponseEntity<List<IntercityVehicleConfig>> getServiceTypes() {
+        List<IntercityVehicleConfig> vehicleTypes = vehicleConfigRepository.findByIsActiveTrueOrderByDisplayOrderAsc();
+        return ResponseEntity.ok(vehicleTypes);
+    }
+    
+    /**
+     * Get a specific service type by vehicle type
+     * 
+     * GET /api/customer/intercity/service-types/{vehicleType}
+     * 
+     * Example: GET /api/customer/intercity/service-types/CAR_NORMAL
+     */
+    @GetMapping("/service-types/{vehicleType}")
+    public ResponseEntity<IntercityVehicleConfig> getServiceType(
+            @PathVariable String vehicleType
+    ) {
+        try {
+            IntercityVehicleType type = IntercityVehicleType.valueOf(vehicleType.toUpperCase());
+            return vehicleConfigRepository.findByVehicleType(type)
+                    .filter(IntercityVehicleConfig::getIsActive)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
     
     /**

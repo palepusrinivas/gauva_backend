@@ -57,8 +57,9 @@ public class SecurityConfig {
             "/api/v1/banners/**",
             // Public services (car, bike, auto) for mobile app
             "/api/v1/services/**",
-            // Public intercity services/routes list
+            // Public intercity services/routes list and service types
             "/api/customer/intercity/services/**",
+            "/api/customer/intercity/service-types/**",
             // WebSocket endpoints
             "/ws/**",
             "/socket.io/**"
