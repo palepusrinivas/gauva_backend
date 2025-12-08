@@ -4,6 +4,7 @@ import com.ridefast.ride_fast_backend.dto.JwtResponse;
 import com.ridefast.ride_fast_backend.dto.LoginRequest;
 import com.ridefast.ride_fast_backend.enums.UserRole;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
+import com.ridefast.ride_fast_backend.exception.UserException;
 import com.ridefast.ride_fast_backend.repository.UserRepository;
 import com.ridefast.ride_fast_backend.service.impl.AuthServiceImpl;
 import com.ridefast.ride_fast_backend.util.JwtTokenHelper;
@@ -40,7 +41,7 @@ class AuthServiceImplTest {
     @InjectMocks AuthServiceImpl authService;
 
     @Test
-    void loginUser_success() throws ResourceNotFoundException {
+    void loginUser_success() throws ResourceNotFoundException, UserException {
         LoginRequest req = new LoginRequest("user@example.com","pass", UserRole.NORMAL_USER);
         Authentication auth = mock(Authentication.class);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
@@ -55,7 +56,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void loginUser_badCredentials_throws() {
+    void loginUser_badCredentials_throws() throws UserException, ResourceNotFoundException {
         LoginRequest req = new LoginRequest("user@example.com","bad", UserRole.NORMAL_USER);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException("bad"));
