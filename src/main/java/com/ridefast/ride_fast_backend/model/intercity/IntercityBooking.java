@@ -41,11 +41,11 @@ public class IntercityBooking {
     private IntercityTrip trip;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private IntercityBookingType bookingType;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     @Builder.Default
     private IntercityBookingStatus status = IntercityBookingStatus.PENDING;
 
@@ -63,12 +63,13 @@ public class IntercityBooking {
 
     /** Payment status */
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     @Builder.Default
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 
     /** Payment method */
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private IntercityPaymentMethod paymentMethod;
 
     /** Razorpay order ID */

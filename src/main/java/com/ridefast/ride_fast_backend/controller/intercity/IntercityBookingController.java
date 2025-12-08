@@ -11,11 +11,13 @@ import com.ridefast.ride_fast_backend.repository.intercity.IntercityVehicleConfi
 import com.ridefast.ride_fast_backend.service.intercity.IntercityBookingService;
 import com.ridefast.ride_fast_backend.service.intercity.IntercityPricingService;
 import com.ridefast.ride_fast_backend.service.intercity.IntercityTripService;
+import com.ridefast.ride_fast_backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,6 +38,7 @@ public class IntercityBookingController {
     private final IntercityPricingService pricingService;
     private final IntercityRouteRepository routeRepository;
     private final IntercityVehicleConfigRepository vehicleConfigRepository;
+    private final UserService userService;
     
     /**
      * Get list of all active intercity routes/services
@@ -257,12 +260,28 @@ public class IntercityBookingController {
      * POST /api/customer/intercity/bookings
      */
     @PostMapping("/bookings")
-    public ResponseEntity<IntercityBookingResponse> createBooking(
-            @AuthenticationPrincipal MyUser user,
+    public ResponseEntity<?> createBooking(
+            @RequestHeader("Authorization") String jwtToken,
             @Valid @RequestBody IntercityBookingRequest request
     ) throws ResourceNotFoundException {
-        IntercityBookingResponse response = bookingService.createBooking(user.getId().toString(), request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        try {
+            // Extract user from JWT token (same pattern as profile endpoint)
+            MyUser user = userService.getRequestedUserProfile(jwtToken);
+            
+            log.info("Creating booking for user: {} (ID: {})", 
+                    user.getEmail() != null ? user.getEmail() : user.getPhone(), user.getId());
+            
+            IntercityBookingResponse response = bookingService.createBooking(user.getId().toString(), request);
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+        } catch (com.ridefast.ride_fast_backend.exception.UserException e) {
+            log.error("Authentication failed for booking request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Authentication required. Please provide a valid JWT token in the Authorization header."));
+        } catch (Exception e) {
+            log.error("Error creating booking: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to create booking: " + e.getMessage()));
+        }
     }
     
     /**

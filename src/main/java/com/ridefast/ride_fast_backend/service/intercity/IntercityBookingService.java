@@ -209,6 +209,13 @@ public class IntercityBookingService {
                 passengerPhone = request.getPassengers().get(i).getPhone();
             }
             
+            // Get passenger name and phone with fallbacks
+            String finalPassengerName = passengerName != null ? passengerName : 
+                (user.getFullName() != null ? user.getFullName() : 
+                 (user.getFirstName() != null ? user.getFirstName() : "Passenger"));
+            String finalPassengerPhone = passengerPhone != null ? passengerPhone : 
+                (user.getPhone() != null ? user.getPhone() : "");
+            
             IntercitySeatBooking seatBooking = IntercitySeatBooking.builder()
                 .trip(trip)
                 .booking(booking)
@@ -216,8 +223,8 @@ public class IntercityBookingService {
                 .seatNumber(seatNumber)
                 .status(IntercitySeatStatus.LOCKED)
                 .pricePaid(perSeatAmount)
-                .passengerName(passengerName != null ? passengerName : user.getFullName())
-                .passengerPhone(passengerPhone != null ? passengerPhone : user.getPhone())
+                .passengerName(finalPassengerName)
+                .passengerPhone(finalPassengerPhone)
                 .lockExpiry(LocalDateTime.now().plusMinutes(SEAT_LOCK_MINUTES))
                 .build();
             
