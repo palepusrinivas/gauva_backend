@@ -7,6 +7,7 @@ import com.ridefast.ride_fast_backend.enums.IntercityVehicleType;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.intercity.*;
 import com.ridefast.ride_fast_backend.repository.intercity.*;
+import com.ridefast.ride_fast_backend.repository.DriverRepository;
 import com.ridefast.ride_fast_backend.service.intercity.IntercityBookingService;
 import com.ridefast.ride_fast_backend.service.intercity.IntercityTripService;
 import jakarta.validation.Valid;
@@ -41,6 +42,7 @@ public class AdminIntercityController {
     private final IntercityTripRepository tripRepository;
     private final IntercityRouteRepository routeRepository;
     private final IntercityVehicleConfigRepository vehicleConfigRepository;
+    private final DriverRepository driverRepository;
     
     // ==================== Dashboard ====================
     
@@ -261,6 +263,81 @@ public class AdminIntercityController {
     public ResponseEntity<IntercityBookingResponse> getBooking(@PathVariable Long bookingId) throws ResourceNotFoundException {
         var booking = bookingService.getBookingById(bookingId);
         return ResponseEntity.ok(bookingService.toResponse(booking));
+    }
+    
+    /**
+     * Admin confirm booking (move from HOLD to CONFIRMED)
+     */
+    @PostMapping("/bookings/{bookingId}/confirm")
+    public ResponseEntity<IntercityBookingResponse> confirmBooking(
+            @PathVariable Long bookingId,
+            @RequestBody(required = false) Map<String, String> payload
+    ) throws ResourceNotFoundException {
+        String paymentMethodStr = payload != null ? payload.get("paymentMethod") : null;
+        com.ridefast.ride_fast_backend.enums.IntercityPaymentMethod paymentMethod = 
+            com.ridefast.ride_fast_backend.enums.IntercityPaymentMethod.ONLINE; // Default
+        
+        if (paymentMethodStr != null) {
+            try {
+                paymentMethod = com.ridefast.ride_fast_backend.enums.IntercityPaymentMethod.valueOf(
+                    paymentMethodStr.toUpperCase()
+                );
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid payment method: {}, defaulting to ONLINE", paymentMethodStr);
+            }
+        }
+        
+        IntercityBookingResponse response = bookingService.adminConfirmBooking(bookingId, paymentMethod);
+        log.info("Admin confirmed booking {} with payment method {}", bookingId, paymentMethod);
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Get available drivers for assignment
+     */
+    @GetMapping("/drivers/available")
+    public ResponseEntity<List<Map<String, Object>>> getAvailableDrivers(
+            @RequestParam(required = false) String search
+    ) {
+        List<com.ridefast.ride_fast_backend.model.Driver> drivers;
+        if (search != null && !search.trim().isEmpty()) {
+            drivers = driverRepository.searchDrivers(search, org.springframework.data.domain.Pageable.unpaged()).getContent();
+        } else {
+            drivers = driverRepository.findAll();
+        }
+        
+        List<Map<String, Object>> driverList = drivers.stream()
+            .map(driver -> {
+                Map<String, Object> driverMap = new HashMap<>();
+                driverMap.put("id", driver.getId());
+                driverMap.put("name", driver.getName());
+                driverMap.put("email", driver.getEmail());
+                driverMap.put("mobile", driver.getMobile());
+                driverMap.put("shortCode", driver.getShortCode());
+                driverMap.put("isOnline", driver.getIsOnline() != null ? driver.getIsOnline() : false);
+                return driverMap;
+            })
+            .collect(java.util.stream.Collectors.toList());
+        
+        return ResponseEntity.ok(driverList);
+    }
+    
+    /**
+     * Admin assign driver to booking/trip
+     */
+    @PostMapping("/bookings/{bookingId}/assign-driver")
+    public ResponseEntity<IntercityBookingResponse> assignDriver(
+            @PathVariable Long bookingId,
+            @RequestBody Map<String, Long> payload
+    ) throws ResourceNotFoundException {
+        Long driverId = payload.get("driverId");
+        if (driverId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        IntercityBookingResponse response = bookingService.assignDriverToBooking(bookingId, driverId);
+        log.info("Admin assigned driver {} to booking {}", driverId, bookingId);
+        return ResponseEntity.ok(response);
     }
     
     /**

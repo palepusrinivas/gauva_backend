@@ -6,6 +6,7 @@ import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.MyUser;
 import com.ridefast.ride_fast_backend.model.intercity.*;
 import com.ridefast.ride_fast_backend.repository.UserRepository;
+import com.ridefast.ride_fast_backend.repository.DriverRepository;
 import com.ridefast.ride_fast_backend.repository.intercity.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,7 @@ public class IntercityBookingService {
     private final IntercityRouteRepository routeRepository;
     private final IntercityVehicleConfigRepository vehicleConfigRepository;
     private final UserRepository userRepository;
+    private final DriverRepository driverRepository;
     
     private final IntercityTripService tripService;
     private final IntercityPricingService pricingService;
@@ -400,6 +402,113 @@ public class IntercityBookingService {
         bookingRepository.save(booking);
         
         log.info("Cancelled booking {}: {}", booking.getBookingCode(), reason);
+        
+        return toResponse(booking);
+    }
+    
+    /**
+     * Admin confirm booking (move from HOLD to CONFIRMED)
+     * This unlocks the driver phone number and confirms the booking
+     */
+    @Transactional
+    public IntercityBookingResponse adminConfirmBooking(Long bookingId, IntercityPaymentMethod paymentMethod) throws ResourceNotFoundException {
+        IntercityBooking booking = getBookingById(bookingId);
+        
+        if (booking.getStatus() != IntercityBookingStatus.HOLD && 
+            booking.getStatus() != IntercityBookingStatus.PENDING) {
+            throw new IllegalStateException("Booking is not in HOLD or PENDING state. Current status: " + booking.getStatus());
+        }
+        
+        // If payment method is not set, use the one from request or default to ONLINE
+        if (booking.getPaymentMethod() == null) {
+            booking.setPaymentMethod(paymentMethod != null ? paymentMethod : IntercityPaymentMethod.ONLINE);
+        }
+        
+        // Calculate commission (5% of total amount)
+        BigDecimal commissionAmount = booking.getTotalAmount().multiply(COMMISSION_RATE);
+        booking.setCommissionAmount(commissionAmount);
+        
+        // Update booking status
+        booking.setStatus(IntercityBookingStatus.CONFIRMED);
+        booking.setPaymentStatus(PaymentStatus.COMPLETED);
+        booking.setConfirmedAt(LocalDateTime.now());
+        
+        // Confirm all seat bookings
+        for (IntercitySeatBooking seat : booking.getSeatBookings()) {
+            seat.setStatus(IntercitySeatStatus.BOOKED);
+            seat.setLockExpiry(null);
+        }
+        
+        // Deduct commission based on payment method
+        IntercityTrip trip = booking.getTrip();
+        if (trip.getDriver() != null) {
+            if (booking.getPaymentMethod() == IntercityPaymentMethod.UPI || 
+                booking.getPaymentMethod() == IntercityPaymentMethod.WALLET ||
+                booking.getPaymentMethod() == IntercityPaymentMethod.ONLINE) {
+                // Instant commission deduction for UPI/Wallet/Online
+                try {
+                    walletService.debit(
+                        com.ridefast.ride_fast_backend.enums.WalletOwnerType.DRIVER,
+                        trip.getDriver().getId().toString(),
+                        commissionAmount,
+                        "INTERCITY_COMMISSION",
+                        booking.getId().toString(),
+                        String.format("5%% commission for intercity booking %s", booking.getBookingCode())
+                    );
+                    booking.setCommissionDeducted(true);
+                    booking.setCommissionDeductedAt(LocalDateTime.now());
+                    log.info("Instant commission deducted: ₹{} for booking {} (Payment: {})", 
+                        commissionAmount, booking.getBookingCode(), booking.getPaymentMethod());
+                } catch (IllegalArgumentException e) {
+                    log.error("Failed to deduct commission for booking {}: {}", 
+                        booking.getBookingCode(), e.getMessage());
+                    // Continue with booking confirmation even if commission deduction fails
+                }
+            } else if (booking.getPaymentMethod() == IntercityPaymentMethod.CASH) {
+                // Cash payment - commission will be deducted at end of day
+                booking.setCommissionDeducted(false);
+                log.info("Cash payment - commission ₹{} will be deducted at end of day for booking {}", 
+                    commissionAmount, booking.getBookingCode());
+            }
+        }
+        
+        bookingRepository.save(booking);
+        
+        // Check for auto-confirm: 3-4 seats booked within 30-45 mins
+        checkAndAutoConfirmTrip(booking.getTrip());
+        
+        log.info("Admin confirmed booking {} - Driver phone number is now visible", booking.getBookingCode());
+        
+        return toResponse(booking);
+    }
+    
+    /**
+     * Admin assign driver to booking/trip
+     * This assigns a driver to the trip associated with the booking
+     */
+    @Transactional
+    public IntercityBookingResponse assignDriverToBooking(Long bookingId, Long driverId) throws ResourceNotFoundException {
+        IntercityBooking booking = getBookingById(bookingId);
+        com.ridefast.ride_fast_backend.model.Driver driver = driverRepository.findById(driverId)
+            .orElseThrow(() -> new ResourceNotFoundException("Driver", "id", driverId));
+        
+        IntercityTrip trip = booking.getTrip();
+        
+        // Check if driver is already assigned
+        if (trip.getDriver() != null && trip.getDriver().getId().equals(driverId)) {
+            log.info("Driver {} is already assigned to trip {}", driverId, trip.getTripCode());
+            return toResponse(booking);
+        }
+        
+        // Assign driver to trip
+        trip.setDriver(driver);
+        tripRepository.save(trip);
+        
+        log.info("Admin assigned driver {} ({}) to booking {} (trip {})", 
+            driverId, driver.getName(), booking.getBookingCode(), trip.getTripCode());
+        
+        // If booking is already CONFIRMED, driver phone will be visible
+        // If booking is HOLD, driver phone will be visible after admin confirms
         
         return toResponse(booking);
     }
