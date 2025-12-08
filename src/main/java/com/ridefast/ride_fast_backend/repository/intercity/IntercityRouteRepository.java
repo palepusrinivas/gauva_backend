@@ -16,6 +16,10 @@ public interface IntercityRouteRepository extends JpaRepository<IntercityRoute, 
     
     List<IntercityRoute> findByIsActiveTrue();
     
+    List<IntercityRoute> findByOriginNameIgnoreCaseAndIsActiveTrue(String originName);
+    
+    List<IntercityRoute> findByDestinationNameIgnoreCaseAndIsActiveTrue(String destinationName);
+    
     boolean existsByRouteCode(String routeCode);
     
     /**

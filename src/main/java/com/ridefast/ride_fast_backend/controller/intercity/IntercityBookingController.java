@@ -4,6 +4,8 @@ import com.ridefast.ride_fast_backend.dto.intercity.*;
 import com.ridefast.ride_fast_backend.enums.IntercityVehicleType;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.MyUser;
+import com.ridefast.ride_fast_backend.model.intercity.IntercityRoute;
+import com.ridefast.ride_fast_backend.repository.intercity.IntercityRouteRepository;
 import com.ridefast.ride_fast_backend.service.intercity.IntercityBookingService;
 import com.ridefast.ride_fast_backend.service.intercity.IntercityPricingService;
 import com.ridefast.ride_fast_backend.service.intercity.IntercityTripService;
@@ -30,6 +32,61 @@ public class IntercityBookingController {
     private final IntercityBookingService bookingService;
     private final IntercityTripService tripService;
     private final IntercityPricingService pricingService;
+    private final IntercityRouteRepository routeRepository;
+    
+    /**
+     * Get list of all active intercity routes/services
+     * 
+     * GET /api/customer/intercity/services
+     * 
+     * Returns all active intercity routes that customers can book
+     */
+    @GetMapping("/services")
+    public ResponseEntity<List<IntercityRoute>> getIntercityServices() {
+        List<IntercityRoute> routes = routeRepository.findByIsActiveTrue();
+        return ResponseEntity.ok(routes);
+    }
+    
+    /**
+     * Get list of intercity routes by origin city
+     * 
+     * GET /api/customer/intercity/services/origin/{originName}
+     */
+    @GetMapping("/services/origin/{originName}")
+    public ResponseEntity<List<IntercityRoute>> getServicesByOrigin(
+            @PathVariable String originName
+    ) {
+        List<IntercityRoute> routes = routeRepository.findByOriginNameIgnoreCaseAndIsActiveTrue(originName);
+        return ResponseEntity.ok(routes);
+    }
+    
+    /**
+     * Get list of intercity routes by destination city
+     * 
+     * GET /api/customer/intercity/services/destination/{destinationName}
+     */
+    @GetMapping("/services/destination/{destinationName}")
+    public ResponseEntity<List<IntercityRoute>> getServicesByDestination(
+            @PathVariable String destinationName
+    ) {
+        List<IntercityRoute> routes = routeRepository.findByDestinationNameIgnoreCaseAndIsActiveTrue(destinationName);
+        return ResponseEntity.ok(routes);
+    }
+    
+    /**
+     * Get a specific route by route code
+     * 
+     * GET /api/customer/intercity/services/route/{routeCode}
+     */
+    @GetMapping("/services/route/{routeCode}")
+    public ResponseEntity<IntercityRoute> getServiceByRouteCode(
+            @PathVariable String routeCode
+    ) {
+        return routeRepository.findByRouteCode(routeCode)
+                .filter(IntercityRoute::getIsActive)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
     
     /**
      * Search for available trips and vehicle options
@@ -53,6 +110,67 @@ public class IntercityBookingController {
     public ResponseEntity<List<IntercityVehicleOptionDTO>> searchVehicleOptions(
             @RequestBody IntercityVehicleSearchRequest request
     ) {
+        List<IntercityVehicleOptionDTO> options = pricingService.searchVehicleOptions(request);
+        return ResponseEntity.ok(options);
+    }
+    
+    /**
+     * Search vehicle options with pricing (GET version - accepts query parameters)
+     * 
+     * GET /api/customer/intercity/vehicles
+     * 
+     * Query Parameters:
+     * - routeId (optional): Route ID if known
+     * - pickupLatitude (optional): Pickup latitude
+     * - pickupLongitude (optional): Pickup longitude
+     * - dropLatitude (optional): Drop latitude
+     * - dropLongitude (optional): Drop longitude
+     * - vehicleType (optional): Vehicle type filter (CAR_NORMAL, CAR_PREMIUM_EXPRESS, etc.)
+     * - preferredDeparture (optional): Preferred departure time (ISO 8601 format)
+     * - seatsNeeded (optional): Number of seats needed (default: 1)
+     * - searchRadiusKm (optional): Search radius in kilometers (default: 5.0)
+     */
+    @GetMapping("/vehicles")
+    public ResponseEntity<List<IntercityVehicleOptionDTO>> searchVehicleOptionsGet(
+            @RequestParam(required = false) Long routeId,
+            @RequestParam(required = false) Double pickupLatitude,
+            @RequestParam(required = false) Double pickupLongitude,
+            @RequestParam(required = false) Double dropLatitude,
+            @RequestParam(required = false) Double dropLongitude,
+            @RequestParam(required = false) String vehicleType,
+            @RequestParam(required = false) String preferredDeparture,
+            @RequestParam(required = false, defaultValue = "1") Integer seatsNeeded,
+            @RequestParam(required = false, defaultValue = "5.0") Double searchRadiusKm
+    ) {
+        // Build request from query parameters
+        IntercityVehicleSearchRequest request = IntercityVehicleSearchRequest.builder()
+                .routeId(routeId)
+                .pickupLatitude(pickupLatitude)
+                .pickupLongitude(pickupLongitude)
+                .dropLatitude(dropLatitude)
+                .dropLongitude(dropLongitude)
+                .seatsNeeded(seatsNeeded)
+                .searchRadiusKm(searchRadiusKm)
+                .build();
+        
+        // Parse vehicle type if provided
+        if (vehicleType != null && !vehicleType.isEmpty()) {
+            try {
+                request.setVehicleType(IntercityVehicleType.valueOf(vehicleType.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid vehicle type: {}, ignoring filter", vehicleType);
+            }
+        }
+        
+        // Parse preferred departure if provided
+        if (preferredDeparture != null && !preferredDeparture.isEmpty()) {
+            try {
+                request.setPreferredDeparture(java.time.LocalDateTime.parse(preferredDeparture));
+            } catch (Exception e) {
+                log.warn("Invalid preferred departure format: {}, ignoring", preferredDeparture);
+            }
+        }
+        
         List<IntercityVehicleOptionDTO> options = pricingService.searchVehicleOptions(request);
         return ResponseEntity.ok(options);
     }
