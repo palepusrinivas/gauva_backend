@@ -6,19 +6,23 @@ import com.ridefast.ride_fast_backend.model.Wallet;
 import com.ridefast.ride_fast_backend.model.WalletTransaction;
 import com.ridefast.ride_fast_backend.repository.WalletRepository;
 import com.ridefast.ride_fast_backend.repository.WalletTransactionRepository;
+import com.ridefast.ride_fast_backend.service.SocketIOService;
 import com.ridefast.ride_fast_backend.service.WalletService;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WalletServiceImpl implements WalletService {
 
   private final WalletRepository walletRepository;
   private final WalletTransactionRepository txRepository;
+  private final SocketIOService socketIOService;
 
   @Override
   @Transactional
@@ -47,7 +51,17 @@ public class WalletServiceImpl implements WalletService {
         .referenceId(referenceId)
         .notes(notes)
         .build();
-    return txRepository.save(tx);
+    WalletTransaction savedTx = txRepository.save(tx);
+    
+    // Broadcast wallet update via Socket.IO
+    try {
+      socketIOService.broadcastWalletUpdate(ownerId, ownerType, wallet.getBalance(), 
+          referenceType, notes != null ? notes : "Credit: " + amount);
+    } catch (Exception e) {
+      log.warn("Failed to broadcast wallet update: {}", e.getMessage());
+    }
+    
+    return savedTx;
   }
 
   @Override
@@ -68,7 +82,17 @@ public class WalletServiceImpl implements WalletService {
         .referenceId(referenceId)
         .notes(notes)
         .build();
-    return txRepository.save(tx);
+    WalletTransaction savedTx = txRepository.save(tx);
+    
+    // Broadcast wallet update via Socket.IO
+    try {
+      socketIOService.broadcastWalletUpdate(ownerId, ownerType, wallet.getBalance(), 
+          referenceType, notes != null ? notes : "Debit: " + amount);
+    } catch (Exception e) {
+      log.warn("Failed to broadcast wallet update: {}", e.getMessage());
+    }
+    
+    return savedTx;
   }
 
   @Override

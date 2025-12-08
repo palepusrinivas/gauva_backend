@@ -20,6 +20,7 @@ import com.ridefast.ride_fast_backend.service.CalculatorService;
 import com.ridefast.ride_fast_backend.service.DriverService;
 import com.ridefast.ride_fast_backend.service.RideService;
 import com.ridefast.ride_fast_backend.service.ShortCodeService;
+import com.ridefast.ride_fast_backend.service.SocketIOService;
 import com.ridefast.ride_fast_backend.service.WebSocketService;
 import com.ridefast.ride_fast_backend.dto.RideDto;
 import org.modelmapper.ModelMapper;
@@ -36,6 +37,7 @@ public class RideServiceImpl implements RideService {
   private final DriverRepository driverRepository;
   private final ShortCodeService shortCodeService;
   private final WebSocketService webSocketService;
+  private final SocketIOService socketIOService;
   private final ModelMapper modelMapper;
 
   @Override
@@ -88,11 +90,13 @@ public class RideServiceImpl implements RideService {
 
     Ride savedRide = rideRepository.save(ride);
     
-    // Broadcast new ride request to all drivers
+    // Broadcast new ride request to all drivers (STOMP and Socket.IO)
     try {
       RideDto rideDto = modelMapper.map(savedRide, RideDto.class);
       webSocketService.broadcastNewRideRequest(savedRide, rideDto);
       webSocketService.broadcastRideStatusUpdate(savedRide, rideDto);
+      socketIOService.broadcastNewRideRequest(savedRide, rideDto);
+      socketIOService.broadcastRideStatusUpdate(savedRide, rideDto);
     } catch (Exception e) {
       // Log but don't fail the ride creation
       System.err.println("Error broadcasting ride request: " + e.getMessage());
@@ -114,6 +118,16 @@ public class RideServiceImpl implements RideService {
 
     driverRepository.save(driver);
     Ride savedRide = rideRepository.save(ride);
+    
+    // Broadcast ride accepted status (STOMP and Socket.IO)
+    try {
+      RideDto rideDto = modelMapper.map(savedRide, RideDto.class);
+      webSocketService.broadcastRideStatusUpdate(savedRide, rideDto);
+      socketIOService.broadcastRideStatusUpdate(savedRide, rideDto);
+    } catch (Exception e) {
+      System.err.println("Error broadcasting ride accepted: " + e.getMessage());
+    }
+    
     return savedRide;
   }
 
@@ -151,10 +165,11 @@ public class RideServiceImpl implements RideService {
     ride.setStartTime(LocalDateTime.now());
     Ride savedRide = rideRepository.save(ride);
     
-    // Broadcast ride started status
+    // Broadcast ride started status (STOMP and Socket.IO)
     try {
       RideDto rideDto = modelMapper.map(savedRide, RideDto.class);
       webSocketService.broadcastRideStatusUpdate(savedRide, rideDto);
+      socketIOService.broadcastRideStatusUpdate(savedRide, rideDto);
     } catch (Exception e) {
       System.err.println("Error broadcasting ride started: " + e.getMessage());
     }
@@ -195,10 +210,11 @@ public class RideServiceImpl implements RideService {
     driverRepository.save(driver);
     Ride savedRide = rideRepository.save(ride);
     
-    // Broadcast ride completed status
+    // Broadcast ride completed status (STOMP and Socket.IO)
     try {
       RideDto rideDto = modelMapper.map(savedRide, RideDto.class);
       webSocketService.broadcastRideStatusUpdate(savedRide, rideDto);
+      socketIOService.broadcastRideStatusUpdate(savedRide, rideDto);
     } catch (Exception e) {
       System.err.println("Error broadcasting ride completed: " + e.getMessage());
     }
