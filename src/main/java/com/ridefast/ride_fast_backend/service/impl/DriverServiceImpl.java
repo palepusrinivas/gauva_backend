@@ -27,6 +27,7 @@ import com.ridefast.ride_fast_backend.repository.VehicleRepository;
 import com.ridefast.ride_fast_backend.service.CalculatorService;
 import com.ridefast.ride_fast_backend.service.DriverService;
 import com.ridefast.ride_fast_backend.service.ShortCodeService;
+import com.ridefast.ride_fast_backend.service.WebSocketService;
 import com.ridefast.ride_fast_backend.util.JwtTokenHelper;
 
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,7 @@ public class DriverServiceImpl implements DriverService {
 
   private final CalculatorService calculatorService;
   private final JwtTokenHelper tokenHelper;
+  private final WebSocketService webSocketService;
 
   private final PasswordEncoder passwordEncoder;
   private final ModelMapper modelMapper;
@@ -257,7 +259,14 @@ public class DriverServiceImpl implements DriverService {
     
     // Update online status directly on Driver
     driver.setIsOnline(isOnline);
-    driverRepository.save(driver);
+    Driver savedDriver = driverRepository.save(driver);
+    
+    // Broadcast driver status update via WebSocket
+    try {
+      webSocketService.broadcastDriverStatusUpdate(savedDriver);
+    } catch (Exception e) {
+      log.error("Error broadcasting driver status update: {}", e.getMessage(), e);
+    }
     
     // Also update DriverDetails if it exists (for backward compatibility)
     // Use driverId (String) field instead of user.id since MyUser.id is String
