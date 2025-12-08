@@ -45,10 +45,19 @@ public class AuthController {
   }
 
   @PostMapping("/login")
-  public ResponseEntity<JwtResponse> loginHandler(@RequestBody @Valid LoginRequest loginRequest)
-      throws ResourceNotFoundException {
-    JwtResponse jwtResponse = authService.loginUser(loginRequest);
-    return new ResponseEntity<>(jwtResponse, HttpStatus.OK);
+  public ResponseEntity<?> loginHandler(@RequestBody @Valid LoginRequest loginRequest) throws org.springframework.web.bind.MethodArgumentNotValidException {
+    try {
+      JwtResponse jwtResponse = authService.loginUser(loginRequest);
+      return new ResponseEntity<>(jwtResponse, HttpStatus.OK);
+    } catch (ResourceNotFoundException e) {
+      return new ResponseEntity<>(Map.of("error", e.getMessage()), HttpStatus.NOT_FOUND);
+    } catch (UserException e) {
+      return new ResponseEntity<>(Map.of("error", e.getMessage()), HttpStatus.BAD_REQUEST);
+    } catch (org.springframework.security.authentication.BadCredentialsException e) {
+      return new ResponseEntity<>(Map.of("error", "Invalid credentials"), HttpStatus.UNAUTHORIZED);
+    } catch (Exception e) {
+      return new ResponseEntity<>(Map.of("error", "Login failed: " + e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @PostMapping("/login/otp")

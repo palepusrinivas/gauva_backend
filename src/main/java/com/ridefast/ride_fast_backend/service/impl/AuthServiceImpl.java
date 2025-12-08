@@ -28,6 +28,7 @@ import com.ridefast.ride_fast_backend.model.Driver;
 import com.ridefast.ride_fast_backend.model.RefreshToken;
 import com.ridefast.ride_fast_backend.model.MyUser;
 import com.ridefast.ride_fast_backend.repository.UserRepository;
+import com.ridefast.ride_fast_backend.repository.DriverRepository;
 import com.ridefast.ride_fast_backend.service.AuthService;
 import com.ridefast.ride_fast_backend.service.CustomUserDetailsService;
 import com.ridefast.ride_fast_backend.service.DriverService;
@@ -39,13 +40,16 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
   private final UserRepository userRepository;
+  private final DriverRepository driverRepository;
   @Autowired
   private final RefreshTokenService refreshTokenService;
   private final JwtTokenHelper jwtTokenHelper;
@@ -103,7 +107,44 @@ public class AuthServiceImpl implements AuthService {
   }
 
   @Override
-  public JwtResponse loginUser(LoginRequest request) throws ResourceNotFoundException {
+  public JwtResponse loginUser(LoginRequest request) throws ResourceNotFoundException, UserException {
+    log.debug("Login attempt for identifier: {}, role: {}", request.getIdentifier(), request.getRole());
+    
+    // First, check if user exists and validate role before authentication
+    MyUser user = userRepository.findByEmailOrPhone(request.getIdentifier()).orElse(null);
+    Driver driver = null;
+    
+    if (user == null) {
+      // Try to find as driver
+      driver = driverRepository.findByEmail(request.getIdentifier()).orElse(null);
+      if (driver == null) {
+        log.warn("Login failed: User not found with identifier: {}", request.getIdentifier());
+        throw new ResourceNotFoundException("User", "identifier", request.getIdentifier());
+      }
+      log.debug("Found driver with identifier: {}", request.getIdentifier());
+    } else {
+      log.debug("Found user with identifier: {}, role: {}", request.getIdentifier(), user.getRole());
+    }
+    
+    // Validate role matches
+    if (user != null) {
+      // User found - check if role matches
+      if (user.getRole() == null || !user.getRole().equals(request.getRole())) {
+        log.warn("Login failed: Role mismatch for user {}. Expected: {}, but user has role: {}", 
+            request.getIdentifier(), request.getRole(), user.getRole());
+        throw new UserException("User role mismatch. Expected: " + request.getRole() + ", but user has role: " + 
+            (user.getRole() != null ? user.getRole() : "null"));
+      }
+    } else if (driver != null) {
+      // Driver found - check if role matches
+      if (request.getRole() != UserRole.DRIVER) {
+        log.warn("Login failed: Role mismatch for driver {}. Expected: {}, but driver role is: DRIVER", 
+            request.getIdentifier(), request.getRole());
+        throw new UserException("Driver role mismatch. Expected: " + request.getRole() + ", but driver role is: DRIVER");
+      }
+    }
+    
+    // Now proceed with authentication
     Authentication authentication = authenticate(request.getIdentifier(), request.getPassword());
     SecurityContextHolder.getContext().setAuthentication(authentication);
 

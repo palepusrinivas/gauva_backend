@@ -27,6 +27,9 @@ import com.ridefast.ride_fast_backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import java.util.Arrays;
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/ride")
 @RequiredArgsConstructor
@@ -38,12 +41,13 @@ public class RideController {
 
   @PostMapping("/request")
   @PreAuthorize("hasRole('NORMAL_USER')")
-  public ResponseEntity<RideDto> userRideRequestHandler(@RequestBody RideRequest request,
+  public ResponseEntity<List<RideDto>> userRideRequestHandler(@RequestBody RideRequest request,
       @RequestHeader("Authorization") String jwtToken) throws ResourceNotFoundException, UserException {
     MyUser user = userService.getRequestedUserProfile(jwtToken);
     Ride ride = rideService.requestRide(request, user);
     RideDto rideDto = modelMapper.map(ride, RideDto.class);
-    return new ResponseEntity<>(rideDto, HttpStatus.OK);
+    // Return as array instead of single object
+    return new ResponseEntity<>(Arrays.asList(rideDto), HttpStatus.OK);
   }
 
   @PostMapping("/{rideId}/accept")

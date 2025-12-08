@@ -84,7 +84,13 @@ app:
       server-key: ${APP_FCM_SERVER_KEY:}
 
   admin:
-    seed-json-path: src/test/resources/superadmin.json
+    # Seed admin user from JSON file on startup
+    # This will automatically create the admin user when the application starts
+    seed-json-path: src/main/resources/admin-seed.json
+    # Alternative: Use environment variables instead of JSON file
+    # username: ${APP_ADMIN_USERNAME:murthy@testing.com}
+    # password: ${APP_ADMIN_PASSWORD:mmurthy123}
+    # role: ${APP_ADMIN_ROLE:ROLE_ADMIN}
 
 management:
   endpoints:

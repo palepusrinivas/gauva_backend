@@ -16,7 +16,7 @@ import com.ridefast.ride_fast_backend.exception.UserException;
 public interface AuthService {
   UserResponse signUpUser(SignUpRequest request) throws UserException;
 
-  JwtResponse loginUser(LoginRequest request) throws ResourceNotFoundException;
+  JwtResponse loginUser(LoginRequest request) throws ResourceNotFoundException, UserException;
 
   JwtResponse loginUserWithOtp(OtpLoginRequest request) throws ResourceNotFoundException;
 
