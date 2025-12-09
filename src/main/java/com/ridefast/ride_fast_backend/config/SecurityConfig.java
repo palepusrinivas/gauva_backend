@@ -62,6 +62,7 @@ public class SecurityConfig {
             "/api/customer/intercity/service-types/**",
             // WebSocket endpoints
             "/ws/**",
+            // Legacy Socket.IO endpoint (returns helpful error)
             "/socket.io/**"
     };
 

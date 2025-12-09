@@ -1,6 +1,7 @@
 package com.ridefast.ride_fast_backend.controller.admin;
 
 import com.ridefast.ride_fast_backend.enums.WalletOwnerType;
+import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.PaymentTransaction;
 import com.ridefast.ride_fast_backend.model.WalletTransaction;
 import com.ridefast.ride_fast_backend.service.WalletService;

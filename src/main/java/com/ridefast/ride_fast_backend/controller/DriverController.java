@@ -1,6 +1,5 @@
 package com.ridefast.ride_fast_backend.controller;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,10 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ridefast.ride_fast_backend.dto.ChangePasswordRequest;
 import com.ridefast.ride_fast_backend.dto.DriverResponse;
 import com.ridefast.ride_fast_backend.dto.RideDto;
+import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.dto.UpdateBankDetailsRequest;
 import com.ridefast.ride_fast_backend.dto.UpdateDriverProfileRequest;
-import com.ridefast.ride_fast_backend.enums.RideStatus;
-import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.Driver;
 import com.ridefast.ride_fast_backend.model.Ride;
 import com.ridefast.ride_fast_backend.service.DriverService;

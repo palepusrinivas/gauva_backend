@@ -199,8 +199,7 @@ public class IntercityBookingService {
         
         booking = bookingRepository.save(booking);
         
-        // Create seat bookings
-        List<IntercitySeatBooking> seatBookings = new ArrayList<>();
+        // Create seat bookings - add directly to existing collection to avoid orphan removal issues
         for (int i = 0; i < seatsToBook; i++) {
             Integer seatNumber = seatBookingRepository.findNextSeatNumber(trip.getId());
             
@@ -230,10 +229,12 @@ public class IntercityBookingService {
                 .lockExpiry(LocalDateTime.now().plusMinutes(SEAT_LOCK_MINUTES))
                 .build();
             
-            seatBookings.add(seatBookingRepository.save(seatBooking));
+            // Add directly to the existing collection instead of replacing it
+            booking.getSeatBookings().add(seatBookingRepository.save(seatBooking));
         }
         
-        booking.setSeatBookings(seatBookings);
+        // Save booking again to persist the collection changes
+        booking = bookingRepository.save(booking);
         
         // Update trip seats (locked seats count towards booked)
         tripService.addSeatsToTrip(trip, seatsToBook);

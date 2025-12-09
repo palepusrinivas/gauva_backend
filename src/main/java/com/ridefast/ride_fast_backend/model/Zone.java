@@ -25,7 +25,7 @@ public class Zone {
   @Column(name = "readable_id", nullable = false, length = 64)
   private String readableId;
 
-  @Column(name = "coordinates", columnDefinition = "polygon")
+  @Column(name = "coordinates", columnDefinition = "TEXT")
   private String coordinates;
 
   @Column(name = "is_active")
@@ -55,7 +55,7 @@ public class Zone {
   @UpdateTimestamp
   private LocalDateTime updatedAt;
 
-  @Column(name = "active", columnDefinition = "bit(1)")
+  @Column(name = "active")
   @Builder.Default
   private Boolean active = true;
 

@@ -6,7 +6,7 @@ import com.ridefast.ride_fast_backend.service.chat.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.ridefast.ride_fast_backend.service.RealtimeService;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +19,7 @@ import java.util.Map;
 public class ChatController {
 
     private final ChatService chatService;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final RealtimeService realtimeService;
 
     @GetMapping("/ride/{rideId}/messages")
     public ResponseEntity<List<ChatMessage>> listRideMessages(@PathVariable Long rideId) {
@@ -33,7 +33,12 @@ public class ChatController {
             return new ResponseEntity<>(Map.of("error", "content must not be blank"), HttpStatus.BAD_REQUEST);
         }
         ChatMessage saved = chatService.sendMessage(rideId, req.getSenderUserId(), req.getReceiverUserId(), req.getContent());
-        messagingTemplate.convertAndSend("/topic/chat/ride/" + rideId, saved);
+        realtimeService.broadcastChatMessage(rideId, 
+            req.getSenderUserId().toString(), 
+            "User " + req.getSenderUserId(), // TODO: Fetch actual user name if needed
+            req.getReceiverUserId().toString(), 
+            req.getContent(), 
+            saved.getId().toString());
         return new ResponseEntity<>(saved, HttpStatus.CREATED);
     }
 }

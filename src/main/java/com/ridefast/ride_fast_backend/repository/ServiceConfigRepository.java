@@ -25,9 +25,9 @@ public interface ServiceConfigRepository extends JpaRepository<ServiceConfig, Lo
     Page<ServiceConfig> findByIsActive(Boolean isActive, Pageable pageable);
 
     @Query("SELECT s FROM ServiceConfig s WHERE " +
-           "LOWER(s.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(s.serviceId) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(s.description) LIKE LOWER(CONCAT('%', :search, '%'))")
+           "LOWER(s.name) LIKE '%' || LOWER(:search) || '%' OR " +
+           "LOWER(s.serviceId) LIKE '%' || LOWER(:search) || '%' OR " +
+           "LOWER(s.description) LIKE '%' || LOWER(:search) || '%'")
     Page<ServiceConfig> search(@Param("search") String search, Pageable pageable);
 
     boolean existsByServiceId(String serviceId);

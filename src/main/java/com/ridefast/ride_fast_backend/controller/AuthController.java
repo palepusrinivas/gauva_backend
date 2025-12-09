@@ -12,7 +12,6 @@ import com.ridefast.ride_fast_backend.dto.DriverResponse;
 import com.ridefast.ride_fast_backend.dto.DriverSignUpRequest;
 import com.ridefast.ride_fast_backend.dto.JwtResponse;
 import com.ridefast.ride_fast_backend.dto.LoginRequest;
-import com.ridefast.ride_fast_backend.dto.OtpLoginRequest;
 import com.ridefast.ride_fast_backend.dto.OtpSendRequest;
 import com.ridefast.ride_fast_backend.dto.OtpSendResponse;
 import com.ridefast.ride_fast_backend.dto.OtpVerifyRequest;

@@ -1,29 +1,23 @@
 server:
   port: 8080
 
-# Socket.IO server configuration
-# Note: Socket.IO runs on a separate Netty server, so it needs its own port
-# For Azure App Service, set SOCKETIO_ENABLED=false or socketio.enabled=false
-# Azure only exposes one port, so Socket.IO cannot run on a separate port
-socketio:
-  enabled: true  # Set to false to disable Socket.IO (useful for Azure App Service)
-  port: 9090  # Separate port for Socket.IO (default: 9090)
-  host: 0.0.0.0
-
 spring:
   datasource:
-    url: jdbc:mysql://178.212.35.218:3306/dev_gauva_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: gauva_gauva
-    password: 442200@Com
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:postgresql://${DB_HOST:34.29.173.113}:${DB_PORT:5432}/${DB_NAME:gauva_testingdb}?sslmode=disable&connectTimeout=60&socketTimeout=60
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:Gauva@amp12}
+    driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
-      minimum-idle: 5
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000  # 30 minutes (shorter to prevent closed connection errors)
-      leak-detection-threshold: 60000
+      minimum-idle: 2
+      connection-timeout: 60000  # 60 seconds (increased for schema migration)
+      idle-timeout: 300000  # 5 minutes
+      max-lifetime: 600000  # 10 minutes (PostgreSQL connections can be shorter)
+      leak-detection-threshold: 120000  # 2 minutes
+      validation-timeout: 5000  # 5 seconds
       connection-test-query: SELECT 1
+      pool-name: HikariPool-GAUVA
+      register-mbeans: true
 
   jpa:
     hibernate:
@@ -32,7 +26,6 @@ spring:
     show-sql: false
     properties:
       format_sql: true
-      hibernate.dialect: org.hibernate.dialect.MySQLDialect
     open-in-view: false
   flyway:
     enabled: false

@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.ridefast.ride_fast_backend.service.RealtimeService;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +20,7 @@ import java.util.Map;
 public class CustomerRideCompatController {
     @Autowired
   private final TrackingService trackingService;
-  private final SimpMessagingTemplate messagingTemplate;
+  private final RealtimeService realtimeService;
   private final FareEngine fareEngine;
 
   @PostMapping("/api/customer/ride/track-location")
@@ -37,7 +37,8 @@ public class CustomerRideCompatController {
       return new ResponseEntity<>(Map.of("error", "ride_id or trip_request_id is required"), HttpStatus.BAD_REQUEST);
     }
     trackingService.saveLastLocation(rideId, update);
-    messagingTemplate.convertAndSend("/topic/ride/" + rideId + "/location", update);
+    Double heading = update.getHeading() != null ? update.getHeading().doubleValue() : null;
+    realtimeService.broadcastDriverLocation(rideId, null, update.getLat(), update.getLng(), heading);
     return ResponseEntity.ok(Map.of("status", "ok"));
   }
 

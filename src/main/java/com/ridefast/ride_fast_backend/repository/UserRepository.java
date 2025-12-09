@@ -33,9 +33,9 @@ public interface UserRepository extends JpaRepository<MyUser, String> {
 
     // Search methods - includes ID, fullName, email, and phone
     @Query("select u from MyUser u where " +
-           "LOWER(u.id) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "(u.fullName IS NOT NULL AND LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%'))) OR " +
-           "(u.email IS NOT NULL AND LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) OR " +
-           "(u.phone IS NOT NULL AND u.phone LIKE CONCAT('%', :search, '%'))")
+           "LOWER(u.id) LIKE '%' || LOWER(:search) || '%' OR " +
+           "(u.fullName IS NOT NULL AND LOWER(u.fullName) LIKE '%' || LOWER(:search) || '%') OR " +
+           "(u.email IS NOT NULL AND LOWER(u.email) LIKE '%' || LOWER(:search) || '%') OR " +
+           "(u.phone IS NOT NULL AND u.phone LIKE '%' || :search || '%')")
     org.springframework.data.domain.Page<MyUser> searchUsers(@Param("search") String search, org.springframework.data.domain.Pageable pageable);
 }

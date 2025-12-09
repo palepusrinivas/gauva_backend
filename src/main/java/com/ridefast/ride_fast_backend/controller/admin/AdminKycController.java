@@ -34,12 +34,143 @@ public class AdminKycController {
   private String documentsGsPath;
 
   @GetMapping("/drivers/{driverId}")
-  public ResponseEntity<DriverKyc> getDriverKyc(@PathVariable Long driverId) {
+  public ResponseEntity<Map<String, Object>> getDriverKyc(@PathVariable Long driverId) {
     Driver driver = driverRepository.findById(driverId)
         .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
     DriverKyc kyc = kycRepository.findByDriver(driver)
         .orElseThrow(() -> new IllegalArgumentException("KYC not found"));
-    return ResponseEntity.ok(kyc);
+    
+    Map<String, Object> response = new HashMap<>();
+    response.put("kyc", kyc);
+    response.put("driver", Map.of(
+        "id", driver.getId(),
+        "name", driver.getName() != null ? driver.getName() : "",
+        "email", driver.getEmail() != null ? driver.getEmail() : "",
+        "mobile", driver.getMobile() != null ? driver.getMobile() : ""
+    ));
+    
+    // Generate signed URLs for all documents
+    Map<String, String> documentUrls = new HashMap<>();
+    if (kyc.getPhotoKey() != null && !kyc.getPhotoKey().isBlank()) {
+      documentUrls.put("photo", signedUrlService.signDocument(kyc.getPhotoKey(), 60).toString());
+    }
+    if (kyc.getAadhaarFrontKey() != null && !kyc.getAadhaarFrontKey().isBlank()) {
+      documentUrls.put("aadhaarFront", signedUrlService.signDocument(kyc.getAadhaarFrontKey(), 60).toString());
+    }
+    if (kyc.getAadhaarBackKey() != null && !kyc.getAadhaarBackKey().isBlank()) {
+      documentUrls.put("aadhaarBack", signedUrlService.signDocument(kyc.getAadhaarBackKey(), 60).toString());
+    }
+    if (kyc.getLicenseFrontKey() != null && !kyc.getLicenseFrontKey().isBlank()) {
+      documentUrls.put("licenseFront", signedUrlService.signDocument(kyc.getLicenseFrontKey(), 60).toString());
+    }
+    if (kyc.getLicenseBackKey() != null && !kyc.getLicenseBackKey().isBlank()) {
+      documentUrls.put("licenseBack", signedUrlService.signDocument(kyc.getLicenseBackKey(), 60).toString());
+    }
+    if (kyc.getRcFrontKey() != null && !kyc.getRcFrontKey().isBlank()) {
+      documentUrls.put("rcFront", signedUrlService.signDocument(kyc.getRcFrontKey(), 60).toString());
+    }
+    if (kyc.getRcBackKey() != null && !kyc.getRcBackKey().isBlank()) {
+      documentUrls.put("rcBack", signedUrlService.signDocument(kyc.getRcBackKey(), 60).toString());
+    }
+    response.put("documentUrls", documentUrls);
+    
+    return ResponseEntity.ok(response);
+  }
+  
+  @GetMapping("/pending")
+  public ResponseEntity<?> getPendingKyc(
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "20") int size) {
+    org.springframework.data.domain.Pageable pageable = 
+        org.springframework.data.domain.PageRequest.of(page, size, 
+            org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "submittedAt"));
+    
+    org.springframework.data.domain.Page<DriverKyc> pendingKyc = 
+        kycRepository.findByStatus(com.ridefast.ride_fast_backend.enums.KycStatus.PENDING, pageable);
+    
+    // Enrich with driver information and document URLs
+    java.util.List<Map<String, Object>> enriched = pendingKyc.getContent().stream()
+        .map(kyc -> {
+          Map<String, Object> item = new HashMap<>();
+          item.put("kyc", kyc);
+          item.put("driver", Map.of(
+              "id", kyc.getDriver().getId(),
+              "name", kyc.getDriver().getName() != null ? kyc.getDriver().getName() : "",
+              "email", kyc.getDriver().getEmail() != null ? kyc.getDriver().getEmail() : "",
+              "mobile", kyc.getDriver().getMobile() != null ? kyc.getDriver().getMobile() : ""
+          ));
+          
+          // Generate signed URLs for documents
+          Map<String, String> documentUrls = new HashMap<>();
+          if (kyc.getPhotoKey() != null && !kyc.getPhotoKey().isBlank()) {
+            documentUrls.put("photo", signedUrlService.signDocument(kyc.getPhotoKey(), 60).toString());
+          }
+          if (kyc.getAadhaarFrontKey() != null && !kyc.getAadhaarFrontKey().isBlank()) {
+            documentUrls.put("aadhaarFront", signedUrlService.signDocument(kyc.getAadhaarFrontKey(), 60).toString());
+          }
+          if (kyc.getAadhaarBackKey() != null && !kyc.getAadhaarBackKey().isBlank()) {
+            documentUrls.put("aadhaarBack", signedUrlService.signDocument(kyc.getAadhaarBackKey(), 60).toString());
+          }
+          if (kyc.getLicenseFrontKey() != null && !kyc.getLicenseFrontKey().isBlank()) {
+            documentUrls.put("licenseFront", signedUrlService.signDocument(kyc.getLicenseFrontKey(), 60).toString());
+          }
+          if (kyc.getLicenseBackKey() != null && !kyc.getLicenseBackKey().isBlank()) {
+            documentUrls.put("licenseBack", signedUrlService.signDocument(kyc.getLicenseBackKey(), 60).toString());
+          }
+          if (kyc.getRcFrontKey() != null && !kyc.getRcFrontKey().isBlank()) {
+            documentUrls.put("rcFront", signedUrlService.signDocument(kyc.getRcFrontKey(), 60).toString());
+          }
+          if (kyc.getRcBackKey() != null && !kyc.getRcBackKey().isBlank()) {
+            documentUrls.put("rcBack", signedUrlService.signDocument(kyc.getRcBackKey(), 60).toString());
+          }
+          item.put("documentUrls", documentUrls);
+          return item;
+        })
+        .collect(java.util.stream.Collectors.toList());
+    
+    Map<String, Object> response = new HashMap<>();
+    response.put("content", enriched);
+    response.put("totalElements", pendingKyc.getTotalElements());
+    response.put("totalPages", pendingKyc.getTotalPages());
+    response.put("currentPage", pendingKyc.getNumber());
+    response.put("size", pendingKyc.getSize());
+    
+    return ResponseEntity.ok(response);
+  }
+  
+  @PutMapping("/drivers/{driverId}/approve")
+  public ResponseEntity<?> approveKyc(@PathVariable Long driverId) {
+    Driver driver = driverRepository.findById(driverId)
+        .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
+    DriverKyc kyc = kycRepository.findByDriver(driver)
+        .orElseThrow(() -> new IllegalArgumentException("KYC not found"));
+    
+    kyc.setStatus(com.ridefast.ride_fast_backend.enums.KycStatus.APPROVED);
+    kyc.setReviewedAt(java.time.Instant.now());
+    kyc.setRejectionReason(null);
+    kycRepository.save(kyc);
+    
+    return ResponseEntity.ok(Map.of("status", "APPROVED", "message", "KYC approved successfully"));
+  }
+  
+  @PutMapping("/drivers/{driverId}/reject")
+  public ResponseEntity<?> rejectKyc(@PathVariable Long driverId, @RequestBody Map<String, String> body) {
+    String reason = body.get("reason");
+    if (reason == null || reason.isBlank()) {
+      return ResponseEntity.badRequest().body(Map.of("error", "Rejection reason is required"));
+    }
+    
+    Driver driver = driverRepository.findById(driverId)
+        .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
+    DriverKyc kyc = kycRepository.findByDriver(driver)
+        .orElseThrow(() -> new IllegalArgumentException("KYC not found"));
+    
+    kyc.setStatus(com.ridefast.ride_fast_backend.enums.KycStatus.REJECTED);
+    kyc.setReviewedAt(java.time.Instant.now());
+    kyc.setRejectionReason(reason);
+    kycRepository.save(kyc);
+    
+    return ResponseEntity.ok(Map.of("status", "REJECTED", "message", "KYC rejected", "reason", reason));
   }
 
   @DeleteMapping("/drivers/{driverId}/files/{name}")

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
 import com.ridefast.ride_fast_backend.dto.CustomExceptionResponse;
+import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;

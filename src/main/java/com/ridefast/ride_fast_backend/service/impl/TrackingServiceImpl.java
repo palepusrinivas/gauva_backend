@@ -1,7 +1,7 @@
 package com.ridefast.ride_fast_backend.service.impl;
 
 import com.ridefast.ride_fast_backend.dto.LocationUpdate;
-import com.ridefast.ride_fast_backend.service.SocketIOService;
+import com.ridefast.ride_fast_backend.service.RealtimeService;
 import com.ridefast.ride_fast_backend.service.TrackingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 public class TrackingServiceImpl implements TrackingService {
 
   private final RedisTemplate<String, Object> redisTemplate;
-  private final SocketIOService socketIOService;
+  private final RealtimeService realtimeService;
 
   private String key(Long rideId) {
     return "ride:last:" + rideId;
@@ -28,17 +28,16 @@ public class TrackingServiceImpl implements TrackingService {
   public void saveLastLocation(Long rideId, LocationUpdate update) {
     redisTemplate.opsForValue().set(key(rideId), update);
     
-    // Broadcast location update via Socket.IO
-    // Note: We need to get driverId from the ride repository
+    // Broadcast location update
     try {
       if (update.getLat() != null && update.getLng() != null) {
         // Get driverId from ride if available (would need rideRepository injected)
         // For now, broadcast with null driverId - can be enhanced later
         Double heading = update.getHeading() != null ? update.getHeading().doubleValue() : null;
-        socketIOService.broadcastDriverLocation(rideId, null, update.getLat(), update.getLng(), heading);
+        realtimeService.broadcastDriverLocation(rideId, null, update.getLat(), update.getLng(), heading);
       }
     } catch (Exception e) {
-      log.warn("Failed to broadcast location update via Socket.IO: {}", e.getMessage());
+      log.warn("Failed to broadcast location update: {}", e.getMessage());
     }
   }
 

@@ -1,6 +1,7 @@
 package com.ridefast.ride_fast_backend.controller;
 
 import com.ridefast.ride_fast_backend.dto.RideDto;
+import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.MyUser;
 import com.ridefast.ride_fast_backend.model.Ride;
 import com.ridefast.ride_fast_backend.model.Driver;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.exception.UserException;
 
 @RestController

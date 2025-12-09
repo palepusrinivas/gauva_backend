@@ -11,10 +11,10 @@ import org.springframework.stereotype.Service;
 import com.ridefast.ride_fast_backend.dto.DriverSignUpRequest;
 import com.ridefast.ride_fast_backend.dto.UpdateBankDetailsRequest;
 import com.ridefast.ride_fast_backend.dto.UpdateDriverProfileRequest;
+import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.enums.RideStatus;
 import com.ridefast.ride_fast_backend.enums.UserRole;
 import com.ridefast.ride_fast_backend.enums.VerificationStatus;
-import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.model.Driver;
 import com.ridefast.ride_fast_backend.model.DriverDetails;
 import com.ridefast.ride_fast_backend.model.License;
@@ -27,9 +27,12 @@ import com.ridefast.ride_fast_backend.repository.VehicleRepository;
 import com.ridefast.ride_fast_backend.service.CalculatorService;
 import com.ridefast.ride_fast_backend.service.DriverService;
 import com.ridefast.ride_fast_backend.service.ShortCodeService;
-import com.ridefast.ride_fast_backend.service.SocketIOService;
-import com.ridefast.ride_fast_backend.service.WebSocketService;
+import com.ridefast.ride_fast_backend.service.RealtimeService;
 import com.ridefast.ride_fast_backend.util.JwtTokenHelper;
+import com.ridefast.ride_fast_backend.model.DriverKyc;
+import com.ridefast.ride_fast_backend.repository.DriverKycRepository;
+import com.ridefast.ride_fast_backend.enums.KycStatus;
+import java.time.Instant;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,11 +46,11 @@ public class DriverServiceImpl implements DriverService {
   private final DriverDetailsRepository driverDetailsRepository;
   private final LicenseRepository licenseRepository;
   private final VehicleRepository vehicleRepository;
+  private final DriverKycRepository driverKycRepository;
 
   private final CalculatorService calculatorService;
   private final JwtTokenHelper tokenHelper;
-  private final WebSocketService webSocketService;
-  private final SocketIOService socketIOService;
+  private final RealtimeService realtimeService;
 
   private final PasswordEncoder passwordEncoder;
   private final ModelMapper modelMapper;
@@ -107,6 +110,14 @@ public class DriverServiceImpl implements DriverService {
       savedVehicle.setDriver(savedDriver);
       vehicleRepository.save(savedVehicle);
     }
+    
+    // Create initial KYC record with PENDING status
+    DriverKyc kyc = DriverKyc.builder()
+        .driver(savedDriver)
+        .status(KycStatus.PENDING)
+        .submittedAt(null) // Will be set when documents are uploaded
+        .build();
+    driverKycRepository.save(kyc);
     
     return savedDriver;
   }
@@ -263,18 +274,11 @@ public class DriverServiceImpl implements DriverService {
     driver.setIsOnline(isOnline);
     Driver savedDriver = driverRepository.save(driver);
     
-    // Broadcast driver status update via WebSocket (STOMP)
+    // Broadcast driver status update
     try {
-      webSocketService.broadcastDriverStatusUpdate(savedDriver);
+      realtimeService.broadcastDriverStatusUpdate(savedDriver);
     } catch (Exception e) {
       log.error("Error broadcasting driver status update: {}", e.getMessage(), e);
-    }
-    
-    // Also broadcast via Socket.IO
-    try {
-      socketIOService.broadcastDriverStatusUpdate(savedDriver);
-    } catch (Exception e) {
-      log.error("Error broadcasting driver status via Socket.IO: {}", e.getMessage(), e);
     }
     
     // Also update DriverDetails if it exists (for backward compatibility)

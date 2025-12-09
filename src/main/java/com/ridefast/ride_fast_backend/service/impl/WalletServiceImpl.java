@@ -6,7 +6,7 @@ import com.ridefast.ride_fast_backend.model.Wallet;
 import com.ridefast.ride_fast_backend.model.WalletTransaction;
 import com.ridefast.ride_fast_backend.repository.WalletRepository;
 import com.ridefast.ride_fast_backend.repository.WalletTransactionRepository;
-import com.ridefast.ride_fast_backend.service.SocketIOService;
+import com.ridefast.ride_fast_backend.service.RealtimeService;
 import com.ridefast.ride_fast_backend.service.WalletService;
 import java.math.BigDecimal;
 import java.util.List;
@@ -22,7 +22,7 @@ public class WalletServiceImpl implements WalletService {
 
   private final WalletRepository walletRepository;
   private final WalletTransactionRepository txRepository;
-  private final SocketIOService socketIOService;
+  private final RealtimeService realtimeService;
 
   @Override
   @Transactional
@@ -53,9 +53,9 @@ public class WalletServiceImpl implements WalletService {
         .build();
     WalletTransaction savedTx = txRepository.save(tx);
     
-    // Broadcast wallet update via Socket.IO
+    // Broadcast wallet update
     try {
-      socketIOService.broadcastWalletUpdate(ownerId, ownerType, wallet.getBalance(), 
+      realtimeService.broadcastWalletUpdate(ownerId, ownerType, wallet.getBalance(), 
           referenceType, notes != null ? notes : "Credit: " + amount);
     } catch (Exception e) {
       log.warn("Failed to broadcast wallet update: {}", e.getMessage());
@@ -84,9 +84,9 @@ public class WalletServiceImpl implements WalletService {
         .build();
     WalletTransaction savedTx = txRepository.save(tx);
     
-    // Broadcast wallet update via Socket.IO
+    // Broadcast wallet update
     try {
-      socketIOService.broadcastWalletUpdate(ownerId, ownerType, wallet.getBalance(), 
+      realtimeService.broadcastWalletUpdate(ownerId, ownerType, wallet.getBalance(), 
           referenceType, notes != null ? notes : "Debit: " + amount);
     } catch (Exception e) {
       log.warn("Failed to broadcast wallet update: {}", e.getMessage());

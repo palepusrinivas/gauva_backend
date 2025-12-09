@@ -31,9 +31,9 @@ public interface DriverRepository extends JpaRepository<Driver, Long> {
 
   // Search methods - includes ID, name, email, and mobile
   @Query("select d from Driver d where " +
-         "CAST(d.id AS string) LIKE CONCAT('%', :search, '%') OR " +
-         "(d.name IS NOT NULL AND LOWER(d.name) LIKE LOWER(CONCAT('%', :search, '%'))) OR " +
-         "(d.email IS NOT NULL AND LOWER(d.email) LIKE LOWER(CONCAT('%', :search, '%'))) OR " +
-         "(d.mobile IS NOT NULL AND d.mobile LIKE CONCAT('%', :search, '%'))")
+         "CAST(d.id AS STRING) LIKE '%' || :search || '%' OR " +
+         "(d.name IS NOT NULL AND LOWER(d.name) LIKE '%' || LOWER(:search) || '%') OR " +
+         "(d.email IS NOT NULL AND LOWER(d.email) LIKE '%' || LOWER(:search) || '%') OR " +
+         "(d.mobile IS NOT NULL AND d.mobile LIKE '%' || :search || '%')")
   org.springframework.data.domain.Page<Driver> searchDrivers(@Param("search") String search, org.springframework.data.domain.Pageable pageable);
 }

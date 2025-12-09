@@ -34,7 +34,7 @@ public interface BannerRepository extends JpaRepository<Banner, Long> {
     List<Banner> findActiveBannersInPeriod(@Param("now") LocalDateTime now);
 
     // Search banners by title
-    @Query("SELECT b FROM Banner b WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :search, '%'))")
+    @Query("SELECT b FROM Banner b WHERE LOWER(b.title) LIKE '%' || LOWER(:search) || '%'")
     Page<Banner> searchByTitle(@Param("search") String search, Pageable pageable);
 
     // Count active banners

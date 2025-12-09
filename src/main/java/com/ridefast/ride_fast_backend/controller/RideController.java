@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ridefast.ride_fast_backend.dto.MessageResponse;
 import com.ridefast.ride_fast_backend.dto.RideDto;
 import com.ridefast.ride_fast_backend.dto.RideRequest;
 import com.ridefast.ride_fast_backend.dto.StartRideRequest;
