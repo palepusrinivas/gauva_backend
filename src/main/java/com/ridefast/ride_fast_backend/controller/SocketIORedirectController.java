@@ -2,9 +2,7 @@ package com.ridefast.ride_fast_backend.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -16,14 +14,19 @@ import java.util.Map;
 @RequestMapping("/socket.io")
 public class SocketIORedirectController {
 
-    @GetMapping("/**")
+    /**
+     * Handle all Socket.IO requests (GET, POST, etc.)
+     * Socket.IO clients may try various HTTP methods for handshake
+     */
+    @RequestMapping(value = "/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS})
     public ResponseEntity<Map<String, Object>> handleSocketIORequest() {
         return ResponseEntity.status(HttpStatus.GONE)
             .body(Map.of(
                 "error", "Socket.IO is no longer supported",
                 "message", "This application now uses standard WebSocket. Please connect to ws://host:port/ws instead.",
                 "newEndpoint", "/ws",
-                "documentation", "See FLUTTER_WEBSOCKET_INTEGRATION.md for migration guide"
+                "migrationGuide", "See FLUTTER_WEBSOCKET_INTEGRATION.md for migration guide",
+                "note", "Socket.IO has been replaced with standard WebSocket for better Flutter compatibility"
             ));
     }
 }
