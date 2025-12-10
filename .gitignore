@@ -37,6 +37,18 @@ logs/
 logs/*.log
 *.log
 **/logs/**
+
+# Test output and reports
+**/target/surefire-reports/
+**/target/site/surefire-report.html
+**/target/test-classes/
+**/target/surefire/
+**/target/failsafe-reports/
+*.test-result
+test-results/
+test-output/
+
+# Firebase credentials
 gauva-15d9a-firebase-adminsdk-fbsvc-ea3bd62754.json
 *.json
 .DS_Store
