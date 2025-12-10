@@ -50,4 +50,4 @@ jobs:
           app-name: 'gauva'
           slot-name: 'Production'
           package: '*.jar'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1A4AB30E1668434E82AEC5777B69C2D5 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_F77AB0BB55A3415C8D02F6845BBCCFA1 }}
