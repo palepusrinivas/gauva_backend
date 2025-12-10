@@ -1,89 +1,53 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
 name: Build and deploy JAR app to Azure Web App - gauva
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
-  build-backend:
+  build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read #This is required for actions/checkout
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Set up Java version
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
           java-version: '17'
+          distribution: 'microsoft'
 
-      - name: Cache Maven
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: m2-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
-          restore-keys: m2-${{ runner.os }}-
+      - name: Build with Maven
+        run: mvn clean install
 
-      - name: Verify repo layout
-        run: |
-          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
-          ls -la "$GITHUB_WORKSPACE"
-          if [ -f "$GITHUB_WORKSPACE/ride_fast_backend/pom.xml" ]; then
-            echo "BACKEND_DIR=$GITHUB_WORKSPACE/ride_fast_backend" >> $GITHUB_ENV
-            echo "Detected Maven project in ride_fast_backend/"
-          elif [ -f "$GITHUB_WORKSPACE/pom.xml" ]; then
-            echo "BACKEND_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-            echo "Detected Maven project at repository root"
-          else
-            echo "ERROR: Could not find pom.xml in ride_fast_backend/ or repo root"
-            exit 1
-          fi
-
-      - name: Build backend (skip tests)
-        run: |
-          echo "Building in $BACKEND_DIR"
-          cd "$BACKEND_DIR"
-          mvn -B -DskipTests package
-          # Try to capture the built jar location
-          JAR_PATH=$(ls -1 target/*.jar | head -n 1 || true)
-          if [ -z "$JAR_PATH" ]; then
-            echo "ERROR: No JAR produced under $BACKEND_DIR/target"
-            exit 1
-          fi
-          echo "JAR_GLOB=$JAR_PATH" >> $GITHUB_ENV
-
-      - name: Upload backend artifact
+      - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: java-app
-          path: ${{ env.JAR_GLOB }}
+          path: '${{ github.workspace }}/target/*.jar'
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build-backend
-    permissions:
-      id-token: write
-      contents: read
+    needs: build
+      
     steps:
-      - name: Download artifact
+      - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: java-app
-
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_16A8453AC10544AB94DC401C6B55719B }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_57F2EE1104B84886AA83CAFBDBD83814 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_0F3E3B1ED7444D19A8A06A4A8C5DEB50 }}
-
+      
       - name: Deploy to Azure Web App
+        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'gauva'
           slot-name: 'Production'
           package: '*.jar'
-
-
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1A4AB30E1668434E82AEC5777B69C2D5 }}
