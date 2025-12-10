@@ -10,6 +10,8 @@ import com.ridefast.ride_fast_backend.repository.intercity.*;
 import com.ridefast.ride_fast_backend.repository.DriverRepository;
 import com.ridefast.ride_fast_backend.service.intercity.IntercityBookingService;
 import com.ridefast.ride_fast_backend.service.intercity.IntercityTripService;
+import com.ridefast.ride_fast_backend.service.intercity.IntercityPricingConfigService;
+import com.ridefast.ride_fast_backend.model.intercity.IntercityPricingConfig;
 import jakarta.validation.Valid;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,7 @@ public class AdminIntercityController {
     
     private final IntercityBookingService bookingService;
     private final IntercityTripService tripService;
+    private final IntercityPricingConfigService pricingConfigService;
     private final IntercityBookingRepository bookingRepository;
     private final IntercityTripRepository tripRepository;
     private final IntercityRouteRepository routeRepository;
@@ -457,6 +460,30 @@ public class AdminIntercityController {
         private BigDecimal priceMultiplier;
         private Boolean isActive;
         private Boolean bidirectional;
+    }
+    
+    // ==================== Pricing Configuration ====================
+    
+    /**
+     * Get intercity pricing configuration
+     * GET /api/admin/intercity/pricing
+     */
+    @GetMapping("/pricing")
+    public ResponseEntity<IntercityPricingConfig> getPricingConfig() {
+        IntercityPricingConfig config = pricingConfigService.getOrCreate();
+        return ResponseEntity.ok(config);
+    }
+    
+    /**
+     * Update intercity pricing configuration
+     * PUT /api/admin/intercity/pricing
+     */
+    @PutMapping("/pricing")
+    public ResponseEntity<IntercityPricingConfig> updatePricingConfig(
+            @Valid @RequestBody IntercityPricingConfigRequest request
+    ) {
+        IntercityPricingConfig updated = pricingConfigService.update(request);
+        return ResponseEntity.ok(updated);
     }
 }
 

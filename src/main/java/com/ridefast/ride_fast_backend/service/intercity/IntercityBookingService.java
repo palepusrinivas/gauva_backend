@@ -40,6 +40,7 @@ public class IntercityBookingService {
     
     private final IntercityTripService tripService;
     private final IntercityPricingService pricingService;
+    private final IntercityPricingConfigService pricingConfigService;
     private final com.ridefast.ride_fast_backend.service.WalletService walletService;
     
     /** Lock expiry time in minutes */
@@ -47,9 +48,6 @@ public class IntercityBookingService {
     
     /** Payment timeout in minutes */
     private static final int PAYMENT_TIMEOUT_MINUTES = 15;
-    
-    /** Commission rate: 5% */
-    private static final BigDecimal COMMISSION_RATE = new BigDecimal("0.05");
     
     /** Minimum driver wallet balance: ₹200 */
     private static final BigDecimal MIN_DRIVER_BALANCE = new BigDecimal("200");
@@ -257,8 +255,9 @@ public class IntercityBookingService {
             throw new IllegalStateException("Booking is not in pending or hold state");
         }
         
-        // Calculate commission (5% of total amount)
-        BigDecimal commissionAmount = booking.getTotalAmount().multiply(COMMISSION_RATE);
+        // Calculate commission using configurable rate
+        BigDecimal commissionRate = pricingConfigService.getCommissionRate();
+        BigDecimal commissionAmount = booking.getTotalAmount().multiply(commissionRate);
         
         // Update booking
         booking.setStatus(IntercityBookingStatus.CONFIRMED);
@@ -425,8 +424,9 @@ public class IntercityBookingService {
             booking.setPaymentMethod(paymentMethod != null ? paymentMethod : IntercityPaymentMethod.ONLINE);
         }
         
-        // Calculate commission (5% of total amount)
-        BigDecimal commissionAmount = booking.getTotalAmount().multiply(COMMISSION_RATE);
+        // Calculate commission using configurable rate
+        BigDecimal commissionRate = pricingConfigService.getCommissionRate();
+        BigDecimal commissionAmount = booking.getTotalAmount().multiply(commissionRate);
         booking.setCommissionAmount(commissionAmount);
         
         // Update booking status
@@ -746,7 +746,8 @@ public class IntercityBookingService {
             try {
                 BigDecimal commissionAmount = booking.getCommissionAmount();
                 if (commissionAmount == null) {
-                    commissionAmount = booking.getTotalAmount().multiply(COMMISSION_RATE);
+                    BigDecimal commissionRate = pricingConfigService.getCommissionRate();
+                    commissionAmount = booking.getTotalAmount().multiply(commissionRate);
                     booking.setCommissionAmount(commissionAmount);
                 }
                 

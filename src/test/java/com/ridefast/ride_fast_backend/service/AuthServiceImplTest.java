@@ -6,6 +6,7 @@ import com.ridefast.ride_fast_backend.enums.UserRole;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.exception.UserException;
 import com.ridefast.ride_fast_backend.repository.UserRepository;
+import com.ridefast.ride_fast_backend.repository.DriverRepository;
 import com.ridefast.ride_fast_backend.service.impl.AuthServiceImpl;
 import com.ridefast.ride_fast_backend.util.JwtTokenHelper;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.*;
 class AuthServiceImplTest {
 
     @Mock UserRepository userRepository;
+    @Mock DriverRepository driverRepository;
     @Mock RefreshTokenService refreshTokenService;
     @Mock JwtTokenHelper jwtTokenHelper;
     @Mock AuthenticationManager authenticationManager;
@@ -43,6 +45,16 @@ class AuthServiceImplTest {
     @Test
     void loginUser_success() throws ResourceNotFoundException, UserException {
         LoginRequest req = new LoginRequest("user@example.com","pass", UserRole.NORMAL_USER);
+        
+        // Mock user repository to return a user
+        com.ridefast.ride_fast_backend.model.MyUser mockUser = new com.ridefast.ride_fast_backend.model.MyUser();
+        mockUser.setEmail("user@example.com");
+        mockUser.setRole(UserRole.NORMAL_USER);
+        when(userRepository.findByEmailOrPhone("user@example.com")).thenReturn(java.util.Optional.of(mockUser));
+        
+        // Mock driver repository to return empty (user found, so driver lookup not needed)
+        when(driverRepository.findByEmail("user@example.com")).thenReturn(java.util.Optional.empty());
+        
         Authentication auth = mock(Authentication.class);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
         UserDetails details = User.withUsername("user@example.com").password("enc").authorities("ROLE_NORMAL_USER").build();
@@ -58,8 +70,20 @@ class AuthServiceImplTest {
     @Test
     void loginUser_badCredentials_throws() throws UserException, ResourceNotFoundException {
         LoginRequest req = new LoginRequest("user@example.com","bad", UserRole.NORMAL_USER);
+        
+        // Mock user repository to return a user
+        com.ridefast.ride_fast_backend.model.MyUser mockUser = new com.ridefast.ride_fast_backend.model.MyUser();
+        mockUser.setEmail("user@example.com");
+        mockUser.setRole(UserRole.NORMAL_USER);
+        when(userRepository.findByEmailOrPhone("user@example.com")).thenReturn(java.util.Optional.of(mockUser));
+        
+        // Mock driver repository to return empty
+        when(driverRepository.findByEmail("user@example.com")).thenReturn(java.util.Optional.empty());
+        
+        // Authentication should throw BadCredentialsException
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException("bad"));
+        
         assertThrows(BadCredentialsException.class, () -> authService.loginUser(req));
     }
 }

@@ -1,7 +1,6 @@
 package com.ridefast.ride_fast_backend.service.impl;
 
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -13,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.ridefast.ride_fast_backend.dto.DriverResponse;
 import com.ridefast.ride_fast_backend.dto.DriverSignUpRequest;
+import com.ridefast.ride_fast_backend.dto.GoogleLoginRequest;
 import com.ridefast.ride_fast_backend.dto.JwtResponse;
 import com.ridefast.ride_fast_backend.dto.LoginRequest;
 import com.ridefast.ride_fast_backend.dto.OtpLoginRequest;
@@ -21,6 +21,7 @@ import com.ridefast.ride_fast_backend.dto.OtpSendResponse;
 import com.ridefast.ride_fast_backend.dto.OtpVerifyRequest;
 import com.ridefast.ride_fast_backend.dto.SignUpRequest;
 import com.ridefast.ride_fast_backend.dto.UserResponse;
+import com.ridefast.ride_fast_backend.enums.AuthProvider;
 import com.ridefast.ride_fast_backend.enums.UserRole;
 import com.ridefast.ride_fast_backend.exception.ResourceNotFoundException;
 import com.ridefast.ride_fast_backend.exception.UserException;
@@ -50,7 +51,6 @@ public class AuthServiceImpl implements AuthService {
 
   private final UserRepository userRepository;
   private final DriverRepository driverRepository;
-  @Autowired
   private final RefreshTokenService refreshTokenService;
   private final JwtTokenHelper jwtTokenHelper;
   private final AuthenticationManager authenticationManager;
@@ -238,8 +238,11 @@ public class AuthServiceImpl implements AuthService {
     }
     
     // Validate phone number exists in database (optional - you might want to allow new users)
+    // Check both users and drivers
     Optional<MyUser> userOptional = userRepository.findByPhone(phoneNumber);
+    Optional<Driver> driverOptional = driverRepository.findByMobile(phoneNumber);
     boolean userExists = userOptional.isPresent();
+    boolean driverExists = driverOptional.isPresent();
     
     return OtpSendResponse.builder()
         .message("OTP will be sent via Firebase. Please use Firebase Client SDK signInWithPhoneNumber() to send OTP.")
@@ -249,13 +252,14 @@ public class AuthServiceImpl implements AuthService {
   }
 
   @Override
-  public JwtResponse verifyOtp(OtpVerifyRequest request) throws ResourceNotFoundException {
+  public JwtResponse verifyOtp(OtpVerifyRequest request) throws ResourceNotFoundException, UserException {
     // This method verifies the Firebase ID token (obtained after client-side OTP verification)
-    // and logs in the user
+    // and logs in the user or driver
     try {
       FirebaseToken decoded = FirebaseAuth.getInstance().verifyIdToken(request.getIdToken());
       String firebaseUid = decoded.getUid();
       String phone = null;
+      String email = null;
       
       // Try to get phone from token claims
       Object claimPhone = decoded.getClaims().get("phone_number");
@@ -273,33 +277,78 @@ public class AuthServiceImpl implements AuthService {
         }
       }
       
-      if (phone == null || phone.isBlank()) {
-        throw new ResourceNotFoundException("FirebaseToken", "phone", "Phone number not found in Firebase token");
+      // Try to get email from token claims
+      Object claimEmail = decoded.getClaims().get("email");
+      if (claimEmail instanceof String ce && !ce.isBlank()) {
+        email = ce;
       }
       
-      // Find user by phone number
-      Optional<MyUser> optional = userRepository.findByPhone(phone);
-      if (optional.isEmpty()) {
-        throw new ResourceNotFoundException("User", "phone", phone);
+      String principal = null;
+      UserDetails userDetails = null;
+      
+      // Check if it's a driver login
+      if (request.getRole() == UserRole.DRIVER) {
+        Driver driver = null;
+        
+        // Try to find driver by phone first (for OTP flow)
+        if (phone != null && !phone.isBlank()) {
+          Optional<Driver> driverOptional = driverRepository.findByMobile(phone);
+          if (driverOptional.isPresent()) {
+            driver = driverOptional.get();
+          }
+        }
+        
+        // If not found by phone, try email (for Google login flow)
+        if (driver == null && email != null && !email.isBlank()) {
+          Optional<Driver> driverOptional = driverRepository.findByEmail(email);
+          if (driverOptional.isPresent()) {
+            driver = driverOptional.get();
+          }
+        }
+        
+        if (driver == null) {
+          String identifier = phone != null && !phone.isBlank() ? phone : email;
+          throw new ResourceNotFoundException("Driver", phone != null && !phone.isBlank() ? "mobile" : "email", identifier);
+        }
+        
+        principal = driver.getEmail();
+        userDetails = userDetailsService.loadUserByUsername(principal);
+      } else {
+        // User login
+        if (phone == null || phone.isBlank()) {
+          throw new ResourceNotFoundException("FirebaseToken", "phone", "Phone number not found in Firebase token");
+        }
+        
+        // Find user by phone number
+        Optional<MyUser> optional = userRepository.findByPhone(phone);
+        if (optional.isEmpty()) {
+          throw new ResourceNotFoundException("User", "phone", phone);
+        }
+        
+        MyUser user = optional.get();
+        
+        // Validate role matches
+        if (user.getRole() != null && !user.getRole().equals(request.getRole())) {
+          throw new UserException("User role mismatch. Expected: " + request.getRole() + ", but user has role: " + user.getRole());
+        }
+        
+        // Update Firebase UID if not set
+        if (user.getFirebaseUid() == null || user.getFirebaseUid().isBlank()) {
+          user.setFirebaseUid(firebaseUid);
+        }
+        
+        // Mark phone as verified
+        if (user.getPhoneVerifiedAt() == null) {
+          user.setPhoneVerifiedAt(LocalDateTime.now());
+        }
+        
+        userRepository.save(user);
+        
+        principal = (user.getEmail() != null && !user.getEmail().isBlank()) ? user.getEmail() : user.getPhone();
+        userDetails = userDetailsService.loadUserByUsername(principal);
       }
-      
-      MyUser user = optional.get();
-      
-      // Update Firebase UID if not set
-      if (user.getFirebaseUid() == null || user.getFirebaseUid().isBlank()) {
-        user.setFirebaseUid(firebaseUid);
-      }
-      
-      // Mark phone as verified
-      if (user.getPhoneVerifiedAt() == null) {
-        user.setPhoneVerifiedAt(LocalDateTime.now());
-      }
-      
-      userRepository.save(user);
 
       // Generate JWT tokens
-      String principal = (user.getEmail() != null && !user.getEmail().isBlank()) ? user.getEmail() : user.getPhone();
-      UserDetails userDetails = userDetailsService.loadUserByUsername(principal);
       RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getUsername(), request.getRole());
       String jwtToken = jwtTokenHelper.generateToken(userDetails.getUsername());
       
@@ -311,6 +360,8 @@ public class AuthServiceImpl implements AuthService {
           .build();
     } catch (ResourceNotFoundException e) {
       throw e;
+    } catch (UserException e) {
+      throw e;
     } catch (Exception ex) {
       throw new ResourceNotFoundException("OTP", "verification", "Failed to verify OTP: " + ex.getMessage());
     }
@@ -320,6 +371,237 @@ public class AuthServiceImpl implements AuthService {
   public DriverResponse registerDriver(DriverSignUpRequest request) {
     Driver registeredDriver = driverService.registerDriver(request);
     return modelMapper.map(registeredDriver, DriverResponse.class);
+  }
+
+  @Override
+  public JwtResponse loginWithGoogle(GoogleLoginRequest request) throws ResourceNotFoundException, UserException {
+    try {
+      // Verify Firebase ID token
+      FirebaseToken decoded = FirebaseAuth.getInstance().verifyIdToken(request.getIdToken());
+      String firebaseUid = decoded.getUid();
+      
+      // Extract user information from Firebase token
+      String email = null;
+      String name = null;
+      String phone = null;
+      
+      // Get email from token claims
+      Object claimEmail = decoded.getClaims().get("email");
+      if (claimEmail instanceof String ce && !ce.isBlank()) {
+        email = ce;
+      }
+      
+      // Get name from token claims
+      Object claimName = decoded.getClaims().get("name");
+      if (claimName instanceof String cn && !cn.isBlank()) {
+        name = cn;
+      }
+      
+      // Get phone from token claims (may not be present for Google login)
+      Object claimPhone = decoded.getClaims().get("phone_number");
+      if (claimPhone instanceof String cp && !cp.isBlank()) {
+        phone = cp;
+      }
+      
+      // Use provided values from request if token doesn't have them
+      if (email == null || email.isBlank()) {
+        email = request.getEmail();
+      }
+      if (name == null || name.isBlank()) {
+        name = request.getName();
+      }
+      if (phone == null || phone.isBlank()) {
+        phone = request.getPhone();
+      }
+      
+      // Email is required for Google login
+      if (email == null || email.isBlank()) {
+        throw new ResourceNotFoundException("GoogleLogin", "email", "Email is required for Google login. Email not found in Firebase token or request.");
+      }
+      
+      // Google login is only for users (NORMAL_USER), not drivers
+      UserRole userRole = UserRole.NORMAL_USER;
+      
+      // Try to find existing user by email first
+      Optional<MyUser> userOptional = userRepository.findByEmail(email);
+      MyUser user;
+      
+      if (userOptional.isPresent()) {
+        // Existing user - update information
+        user = userOptional.get();
+        
+        // Validate that this is a user account, not a driver account
+        if (user.getRole() != null && user.getRole() != UserRole.NORMAL_USER) {
+          throw new UserException("Google login is only available for users. This account has role: " + user.getRole());
+        }
+        
+        // Update user information if needed
+        boolean needsUpdate = false;
+        
+        // Update name if not set or if provided name is different
+        if (name != null && !name.isBlank()) {
+          if (user.getFullName() == null || user.getFullName().isBlank() || !user.getFullName().equals(name)) {
+            user.setFullName(name);
+            // Split name into first and last name
+            if (name.contains(" ")) {
+              int spaceIndex = name.indexOf(" ");
+              user.setFirstName(name.substring(0, spaceIndex));
+              user.setLastName(name.substring(spaceIndex + 1));
+            } else {
+              user.setFirstName(name);
+              user.setLastName(null);
+            }
+            needsUpdate = true;
+          }
+        }
+        
+        // Update phone if provided and not set
+        if (phone != null && !phone.isBlank() && (user.getPhone() == null || user.getPhone().isBlank())) {
+          // Check if phone is already used by another user
+          Optional<MyUser> phoneUser = userRepository.findByPhone(phone);
+          if (phoneUser.isPresent() && !phoneUser.get().getId().equals(user.getId())) {
+            log.warn("Phone number {} is already associated with another user", phone);
+          } else {
+            user.setPhone(phone);
+            user.setPhoneVerifiedAt(LocalDateTime.now());
+            needsUpdate = true;
+          }
+        }
+        
+        // Update auth provider information
+        if (user.getAuthProvider() == null || user.getAuthProvider() != AuthProvider.GOOGLE) {
+          user.setAuthProvider(AuthProvider.GOOGLE);
+          needsUpdate = true;
+        }
+        
+        // Update Firebase UID and provider user ID
+        if (user.getProviderUserId() == null || user.getProviderUserId().isBlank()) {
+          user.setProviderUserId(firebaseUid);
+          needsUpdate = true;
+        }
+        if (user.getFirebaseUid() == null || user.getFirebaseUid().isBlank()) {
+          user.setFirebaseUid(firebaseUid);
+          needsUpdate = true;
+        }
+        
+        // Mark email as verified
+        if (user.getEmailVerifiedAt() == null) {
+          user.setEmailVerifiedAt(LocalDateTime.now());
+          needsUpdate = true;
+        }
+        
+        // Ensure role is set to NORMAL_USER
+        if (user.getRole() == null) {
+          user.setRole(UserRole.NORMAL_USER);
+          needsUpdate = true;
+        }
+        
+        // Save if any updates were made
+        if (needsUpdate) {
+          user = userRepository.save(user);
+        }
+      } else {
+        // New user - create account in MyUser table
+        log.info("Creating new user account via Google login for email: {}", email);
+        
+        // Double-check email is not already used (race condition protection)
+        Optional<MyUser> emailCheck = userRepository.findByEmail(email);
+        if (emailCheck.isPresent()) {
+          // Email was just created by another thread, use existing user
+          user = emailCheck.get();
+          log.info("User with email {} already exists, using existing account", email);
+        } else {
+          // Split name into first and last name
+          String firstName = null;
+          String lastName = null;
+          if (name != null && !name.isBlank()) {
+            if (name.contains(" ")) {
+              int spaceIndex = name.indexOf(" ");
+              firstName = name.substring(0, spaceIndex);
+              lastName = name.substring(spaceIndex + 1);
+            } else {
+              firstName = name;
+            }
+          }
+          
+          // Check if phone is already used by another user
+          if (phone != null && !phone.isBlank()) {
+            Optional<MyUser> phoneUser = userRepository.findByPhone(phone);
+            if (phoneUser.isPresent()) {
+              log.warn("Phone number {} is already associated with another user. Creating account without phone.", phone);
+              phone = null; // Don't set phone if it's already used
+            }
+          }
+        
+          // Build new user
+          user = MyUser.builder()
+              .email(email)
+              .phone(phone)
+              .fullName(name)
+              .firstName(firstName)
+              .lastName(lastName)
+              .role(UserRole.NORMAL_USER)
+              .authProvider(AuthProvider.GOOGLE)
+              .providerUserId(firebaseUid)
+              .firebaseUid(firebaseUid)
+              .isActive(true)
+              .isTempBlocked(false)
+              .failedAttempt(0)
+              .loyaltyPoints(0.0)
+              .currentLanguageKey("en")
+              .emailVerifiedAt(LocalDateTime.now())
+              .phoneVerifiedAt(phone != null ? LocalDateTime.now() : null)
+              .createdAt(LocalDateTime.now())
+              .build();
+          
+          // Generate short code if not set
+          if (user.getShortCode() == null || user.getShortCode().isBlank()) {
+            user.setShortCode(shortCodeService.generateUserCode());
+          }
+          
+          // Save new user to database
+          try {
+            user = userRepository.save(user);
+            log.info("Successfully created new user account with ID: {} and email: {}", user.getId(), user.getEmail());
+          } catch (Exception e) {
+            // Handle potential duplicate email constraint violation
+            log.error("Error saving new user: {}", e.getMessage());
+            // Try to fetch the user again in case it was created by another thread
+            Optional<MyUser> retryUser = userRepository.findByEmail(email);
+            if (retryUser.isPresent()) {
+              user = retryUser.get();
+              log.info("User was created by another thread, using existing account");
+            } else {
+              throw new UserException("Failed to create user account: " + e.getMessage());
+            }
+          }
+        }
+      }
+      
+      // Generate JWT tokens for the user
+      String principal = (user.getEmail() != null && !user.getEmail().isBlank()) ? user.getEmail() : user.getPhone();
+      if (principal == null || principal.isBlank()) {
+        throw new UserException("Cannot generate token: user has no email or phone number");
+      }
+      
+      UserDetails userDetails = userDetailsService.loadUserByUsername(principal);
+      RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getUsername(), userRole);
+      String jwtToken = jwtTokenHelper.generateToken(userDetails.getUsername());
+      
+      return JwtResponse.builder()
+          .accessToken(jwtToken)
+          .refreshToken(refreshToken.getRefreshToken())
+          .type(userRole)
+          .message("Login successfully via Google: " + userDetails.getUsername())
+          .build();
+    } catch (ResourceNotFoundException e) {
+      throw e;
+    } catch (UserException e) {
+      throw e;
+    } catch (Exception ex) {
+      log.error("Google login failed: {}", ex.getMessage(), ex);
+      throw new ResourceNotFoundException("GoogleLogin", "verification", "Failed to verify Google token: " + ex.getMessage());
+    }
   }
 
 }

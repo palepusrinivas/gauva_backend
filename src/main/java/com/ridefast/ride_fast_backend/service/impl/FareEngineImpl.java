@@ -17,11 +17,14 @@ import com.ridefast.ride_fast_backend.repository.v2.ZoneV2Repository;
 import com.ridefast.ride_fast_backend.repository.v2.VehicleCategoryRepository;
 import com.ridefast.ride_fast_backend.repository.v2.TripFareRepository;
 import com.ridefast.ride_fast_backend.service.FareEngine;
+import com.ridefast.ride_fast_backend.service.CalculatorService;
 import com.ridefast.ride_fast_backend.service.promo.CouponService;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FareEngineImpl implements FareEngine {
@@ -33,9 +36,46 @@ public class FareEngineImpl implements FareEngine {
   private final VehicleCategoryRepository vehicleCategoryRepository;
   private final TripFareRepository tripFareRepository;
   private final CouponService couponService;
+  private final CalculatorService calculatorService;
 
   @Override
   public FareEstimateResponse estimate(FareEstimateRequest req) {
+    // Calculate distance and duration from coordinates if not provided
+    double distanceKm = req.getDistanceKm();
+    double durationMin = req.getDurationMin();
+    
+    // If distance/duration not provided but coordinates are available, calculate them
+    if ((distanceKm <= 0 || durationMin <= 0) && 
+        req.getPickupLat() != null && req.getPickupLng() != null &&
+        req.getDropLat() != null && req.getDropLng() != null) {
+      
+      // Calculate straight-line distance using Haversine formula
+      double calculatedDistance = calculatorService.calculateDistance(
+          req.getPickupLat(), 
+          req.getPickupLng(), 
+          req.getDropLat(), 
+          req.getDropLng()
+      );
+      
+      if (distanceKm <= 0) {
+        distanceKm = calculatedDistance;
+        log.debug("Calculated distance from coordinates: {} km", distanceKm);
+      }
+      
+      // Estimate duration based on average speed (assuming 30 km/h average city speed)
+      // This is a rough estimate - for accurate duration, use Google Maps Directions API
+      if (durationMin <= 0) {
+        double averageSpeedKmh = 30.0; // Average city speed
+        durationMin = Math.round((distanceKm / averageSpeedKmh) * 60);
+        log.debug("Estimated duration from distance: {} min", durationMin);
+      }
+    }
+    
+    // Validate that we have distance and duration
+    if (distanceKm <= 0 || durationMin <= 0) {
+      throw new IllegalArgumentException("Distance and duration must be provided or calculable from coordinates");
+    }
+    
     PricingProfile profile = pricingProfileRepository.findFirstByActiveTrue()
         .orElseThrow(() -> new IllegalStateException("No active pricing profile configured"));
 
@@ -80,8 +120,8 @@ public class FareEngineImpl implements FareEngine {
       }
     }
 
-    double distanceFare = round2(req.getDistanceKm() * perKmRate);
-    double timeFare = round2(req.getDurationMin() * timeRatePerMin);
+    double distanceFare = round2(distanceKm * perKmRate);
+    double timeFare = round2(durationMin * timeRatePerMin);
 
     double cancellationFee = 0.0; // estimates ignore unless you want flags
     double returnFee = 0.0; // estimates ignore unless you want flags
@@ -108,10 +148,10 @@ public class FareEngineImpl implements FareEngine {
     return FareEstimateResponse.builder()
         .currency(profile.getCurrency())
         .baseFare(baseFare)
-        .distanceKm(req.getDistanceKm())
+        .distanceKm(distanceKm)
         .perKmRate(perKmRate)
         .distanceFare(distanceFare)
-        .durationMin(req.getDurationMin())
+        .durationMin(durationMin)
         .timeRatePerMin(timeRatePerMin)
         .timeFare(timeFare)
         .cancellationFee(cancellationFee)

@@ -2,6 +2,7 @@ package com.ridefast.ride_fast_backend.service;
 
 import com.ridefast.ride_fast_backend.dto.DriverResponse;
 import com.ridefast.ride_fast_backend.dto.DriverSignUpRequest;
+import com.ridefast.ride_fast_backend.dto.GoogleLoginRequest;
 import com.ridefast.ride_fast_backend.dto.JwtResponse;
 import com.ridefast.ride_fast_backend.dto.LoginRequest;
 import com.ridefast.ride_fast_backend.dto.OtpLoginRequest;
@@ -22,7 +23,9 @@ public interface AuthService {
 
   OtpSendResponse sendOtp(OtpSendRequest request) throws ResourceNotFoundException;
 
-  JwtResponse verifyOtp(OtpVerifyRequest request) throws ResourceNotFoundException;
+  JwtResponse verifyOtp(OtpVerifyRequest request) throws ResourceNotFoundException, UserException;
+
+  JwtResponse loginWithGoogle(GoogleLoginRequest request) throws ResourceNotFoundException, UserException;
 
   DriverResponse registerDriver(DriverSignUpRequest request);
 }

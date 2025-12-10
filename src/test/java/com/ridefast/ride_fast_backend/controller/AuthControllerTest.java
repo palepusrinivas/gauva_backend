@@ -8,6 +8,8 @@ import com.ridefast.ride_fast_backend.dto.OtpSendResponse;
 import com.ridefast.ride_fast_backend.dto.OtpVerifyRequest;
 import com.ridefast.ride_fast_backend.enums.UserRole;
 import com.ridefast.ride_fast_backend.service.AuthService;
+import com.ridefast.ride_fast_backend.service.RefreshTokenService;
+import com.ridefast.ride_fast_backend.util.JwtTokenHelper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +29,8 @@ class AuthControllerTest {
     @Autowired ObjectMapper objectMapper;
 
     @MockBean AuthService authService;
+    @MockBean RefreshTokenService refreshTokenService;
+    @MockBean JwtTokenHelper jwtTokenHelper;
 
     @Test
     void login_returnsOk() throws Exception {

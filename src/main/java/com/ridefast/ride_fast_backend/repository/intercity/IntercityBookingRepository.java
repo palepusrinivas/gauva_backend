@@ -26,6 +26,29 @@ public interface IntercityBookingRepository extends JpaRepository<IntercityBooki
     List<IntercityBooking> findByUserIdOrderByCreatedAtDesc(String oderId);
     
     /**
+     * Find bookings by user with trip and driver eagerly loaded
+     */
+    @Query("""
+        SELECT DISTINCT b FROM IntercityBooking b 
+        LEFT JOIN FETCH b.trip t 
+        LEFT JOIN FETCH t.driver 
+        WHERE b.user.id = :userId 
+        ORDER BY b.createdAt DESC
+        """)
+    List<IntercityBooking> findByUserIdWithTripAndDriver(@Param("userId") String userId);
+    
+    /**
+     * Find all bookings with trip and driver eagerly loaded (for driver view)
+     */
+    @Query("""
+        SELECT DISTINCT b FROM IntercityBooking b 
+        LEFT JOIN FETCH b.trip t 
+        LEFT JOIN FETCH t.driver 
+        ORDER BY b.createdAt DESC
+        """)
+    List<IntercityBooking> findAllWithTripAndDriver();
+    
+    /**
      * Find bookings by user and status
      */
     List<IntercityBooking> findByUserIdAndStatusIn(String userId, List<IntercityBookingStatus> statuses);
