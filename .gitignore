@@ -38,6 +38,10 @@ logs/*.log
 *.log
 **/logs/**
 
+# Test folder - completely ignored
+src/test/
+**/test/
+
 # Test output and reports
 **/target/surefire-reports/
 **/target/site/surefire-report.html
