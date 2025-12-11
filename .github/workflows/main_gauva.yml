@@ -70,6 +70,8 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'gauva'
-          slot-name: 'Production'
+          # Remove slot-name to deploy directly to production (default slot)
+          # If you have deployment slots, uncomment and set the correct slot name
+          # slot-name: 'Production'
           package: 'guava_app_backend-0.0.1-SNAPSHOT.jar'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_A4EDF933DA40475EBFAFFE2AB19EBECF }}
