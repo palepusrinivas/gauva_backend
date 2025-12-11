@@ -1,0 +1,22 @@
+# Local development profile configuration
+# Use this profile when running locally: -Dspring.profiles.active=local
+# Or set SPRING_PROFILES_ACTIVE=local environment variable
+
+spring:
+  datasource:
+    # Override with local database or use environment variables
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:gauva_local}?sslmode=disable&connectTimeout=10&socketTimeout=10
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      connection-timeout: 10000  # 10 seconds for local (faster failure)
+      initialization-fail-timeout: 5000  # 5 seconds
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true  # Show SQL in local development
+
+# Disable Redis if not available locally (optional)
+# spring.data.redis.host: ${REDIS_HOST:localhost}
+# spring.data.redis.port: ${REDIS_PORT:6379}

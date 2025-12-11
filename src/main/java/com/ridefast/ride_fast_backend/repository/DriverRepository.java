@@ -9,7 +9,9 @@ import org.springframework.data.repository.query.Param;
 
 import com.ridefast.ride_fast_backend.model.Driver;
 import com.ridefast.ride_fast_backend.model.Ride;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public interface DriverRepository extends JpaRepository<Driver, Long> {
   public Optional<Driver> findByEmail(String email);
   

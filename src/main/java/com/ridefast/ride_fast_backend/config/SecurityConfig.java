@@ -60,6 +60,8 @@ public class SecurityConfig {
             // Public intercity services/routes list and service types
             "/api/customer/intercity/services/**",
             "/api/customer/intercity/service-types/**",
+            // Public customer config endpoints (for mobile app)
+            "/api/customer/config/**",
             // WebSocket endpoints
             "/ws/**",
             // Legacy Socket.IO endpoint (returns helpful error)
