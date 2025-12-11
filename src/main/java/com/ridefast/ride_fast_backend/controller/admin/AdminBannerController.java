@@ -5,6 +5,7 @@ import com.ridefast.ride_fast_backend.repository.BannerRepository;
 import com.ridefast.ride_fast_backend.service.storage.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +32,34 @@ public class AdminBannerController {
 
     private final BannerRepository bannerRepository;
     private final StorageService storageService;
+    
+    @Value("${app.firebase.storage-bucket:}")
+    private String defaultBucket;
+    
+    @Value("${app.firebase.documents-gs-path:gs://gauva-15d9a.appspot.com/documents}")
+    private String documentsGsPath;
+    
+    /**
+     * Helper method to parse gs:// path
+     */
+    private record GsInfo(String bucket, String prefix) {}
+    
+    private GsInfo parseGsPath(String gsPath) {
+        if (gsPath == null || !gsPath.startsWith("gs://")) {
+            return new GsInfo(defaultBucket, "");
+        }
+        String rest = gsPath.substring(5); // after gs://
+        int slash = rest.indexOf('/');
+        if (slash < 0) {
+            return new GsInfo(rest, "");
+        }
+        String bucket = rest.substring(0, slash);
+        String prefix = rest.substring(slash + 1);
+        if (!prefix.isEmpty() && !prefix.endsWith("/")) {
+            prefix = prefix + "/";
+        }
+        return new GsInfo(bucket, prefix);
+    }
 
     /**
      * Get all banners with optional filtering and pagination
@@ -213,10 +242,44 @@ public class AdminBannerController {
                                 return ResponseEntity.badRequest().body(Map.of("error", "Image size must be less than 5MB"));
                             }
 
+                            // Delete old image if exists before uploading new one
+                            String oldImageUrl = banner.getImageUrl();
+                            if (oldImageUrl != null && !oldImageUrl.isBlank()) {
+                                try {
+                                    // Convert relative path to gs:// format for deletion
+                                    String pathToDelete;
+                                    if (oldImageUrl.startsWith("gs://")) {
+                                        pathToDelete = oldImageUrl;
+                                    } else {
+                                        GsInfo info = parseGsPath(documentsGsPath);
+                                        String bucket = (info.bucket() != null && !info.bucket().isBlank()) ? info.bucket() : defaultBucket;
+                                        if (bucket != null && !bucket.isBlank()) {
+                                            pathToDelete = String.format("gs://%s/%s", bucket, oldImageUrl);
+                                        } else {
+                                            log.warn("Cannot delete old banner image: bucket not configured");
+                                            pathToDelete = null;
+                                        }
+                                    }
+                                    
+                                    if (pathToDelete != null) {
+                                        boolean deleted = storageService.delete(pathToDelete);
+                                        if (deleted) {
+                                            log.info("Deleted old banner image: {}", pathToDelete);
+                                        } else {
+                                            log.warn("Failed to delete old banner image (file may not exist): {}", pathToDelete);
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    log.warn("Failed to delete old banner image: {}", e.getMessage());
+                                    // Continue with upload even if old image deletion fails
+                                }
+                            }
+
                             try {
                                 String fileName = "banners/" + UUID.randomUUID() + "_" + bannerImage.getOriginalFilename();
                                 String imageUrl = storageService.uploadFile(bannerImage, fileName);
                                 banner.setImageUrl(imageUrl);
+                                log.info("Uploaded new banner image: {}", imageUrl);
                             } catch (Exception e) {
                                 log.error("Failed to upload banner image", e);
                             }
@@ -260,12 +323,40 @@ public class AdminBannerController {
     public ResponseEntity<?> deleteBanner(@PathVariable Long id) {
         return bannerRepository.findById(id)
                 .map(banner -> {
-                    // Optionally delete image from storage
-                    if (banner.getImageUrl() != null) {
+                    // Delete image from storage before deleting banner
+                    if (banner.getImageUrl() != null && !banner.getImageUrl().isBlank()) {
                         try {
-                            // storageService.deleteFile(banner.getImageUrl());
+                            String imageUrl = banner.getImageUrl();
+                            
+                            // Convert relative path to gs:// format for deletion
+                            // imageUrl is stored as relative path like "documents/banners/filename.jpg"
+                            String pathToDelete;
+                            if (imageUrl.startsWith("gs://")) {
+                                // Already in gs:// format
+                                pathToDelete = imageUrl;
+                            } else {
+                                // Convert relative path to gs:// format
+                                GsInfo info = parseGsPath(documentsGsPath);
+                                String bucket = (info.bucket() != null && !info.bucket().isBlank()) ? info.bucket() : defaultBucket;
+                                if (bucket != null && !bucket.isBlank()) {
+                                    pathToDelete = String.format("gs://%s/%s", bucket, imageUrl);
+                                } else {
+                                    log.warn("Cannot delete banner image: bucket not configured. Image URL: {}", imageUrl);
+                                    pathToDelete = null;
+                                }
+                            }
+                            
+                            if (pathToDelete != null) {
+                                boolean deleted = storageService.delete(pathToDelete);
+                                if (deleted) {
+                                    log.info("Successfully deleted banner image from storage: {}", pathToDelete);
+                                } else {
+                                    log.warn("Failed to delete banner image from storage (file may not exist): {}", pathToDelete);
+                                }
+                            }
                         } catch (Exception e) {
-                            log.warn("Failed to delete banner image", e);
+                            log.error("Error deleting banner image from storage: {}", e.getMessage(), e);
+                            // Continue with banner deletion even if image deletion fails
                         }
                     }
                     
