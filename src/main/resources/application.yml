@@ -1,16 +1,18 @@
 server:
-  port: 8080
+  port: ${PORT:8080}  # Use PORT env var for Azure App Service (defaults to 8080 for local)
 
 spring:
+  main:
+    lazy-initialization: false  # Keep false for startup, but reduce connection timeout
   datasource:
-    url: jdbc:postgresql://${DB_HOST:34.29.173.113}:${DB_PORT:5432}/${DB_NAME:gauva_testingdb}?sslmode=disable&connectTimeout=60&socketTimeout=60
+    url: jdbc:postgresql://${DB_HOST:34.29.173.113}:${DB_PORT:5432}/${DB_NAME:gauva_testingdb}?sslmode=disable&connectTimeout=30&socketTimeout=30
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:Gauva@amp12}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
-      connection-timeout: 60000  # 60 seconds (increased for schema migration)
+      connection-timeout: 30000  # 30 seconds (reduced for faster failure on Azure)
       idle-timeout: 300000  # 5 minutes
       max-lifetime: 600000  # 10 minutes (PostgreSQL connections can be shorter)
       leak-detection-threshold: 120000  # 2 minutes
@@ -18,6 +20,7 @@ spring:
       connection-test-query: SELECT 1
       pool-name: HikariPool-GAUVA
       register-mbeans: true
+      initialization-fail-timeout: 10000  # Fail fast if can't initialize pool
 
   jpa:
     hibernate:
