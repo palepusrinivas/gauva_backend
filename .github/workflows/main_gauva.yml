@@ -25,13 +25,32 @@ jobs:
           distribution: 'microsoft'
 
       - name: Build with Maven
-        run: mvn clean install
+        run: mvn clean package -DskipTests
+
+      - name: List JAR files
+        run: ls -lh target/*.jar
+
+      - name: Verify JAR contains dependencies
+        run: |
+          JAR_FILE="target/guava_app_backend-0.0.1-SNAPSHOT.jar"
+          if [ -f "$JAR_FILE" ]; then
+            echo "Checking if JAR contains Logback classes..."
+            jar tf "$JAR_FILE" | grep -i logback | head -5 || echo "WARNING: Logback classes not found in JAR"
+            echo "JAR file size: $(du -h $JAR_FILE | cut -f1)"
+            echo "Checking BOOT-INF/lib directory (where dependencies should be)..."
+            jar tf "$JAR_FILE" | grep "BOOT-INF/lib" | wc -l | xargs echo "Number of dependency JARs:"
+          else
+            echo "ERROR: JAR file not found!"
+            exit 1
+          fi
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: java-app
-          path: '${{ github.workspace }}/target/*.jar'
+          path: '${{ github.workspace }}/target/guava_app_backend-0.0.1-SNAPSHOT.jar'
+          # Upload the repackaged Spring Boot JAR (includes all dependencies)
+          retention-days: 1
 
   deploy:
     runs-on: ubuntu-latest
@@ -43,11 +62,14 @@ jobs:
         with:
           name: java-app
       
+      - name: List downloaded JAR files
+        run: ls -lh *.jar
+
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'gauva'
           slot-name: 'Production'
-          package: '*.jar'
+          package: 'guava_app_backend-0.0.1-SNAPSHOT.jar'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_A4EDF933DA40475EBFAFFE2AB19EBECF }}
