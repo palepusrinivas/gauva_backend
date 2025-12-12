@@ -57,6 +57,10 @@ public class Driver {
     @OneToOne(mappedBy = "driver")
     private RefreshToken refreshToken;
 
+    @JsonIgnore
+    @OneToOne(mappedBy = "driver", cascade = CascadeType.ALL, orphanRemoval = true)
+    private DriverKyc kyc;
+
     // Bank and UPI details
     private String accountHolderName;
     private String bankName;

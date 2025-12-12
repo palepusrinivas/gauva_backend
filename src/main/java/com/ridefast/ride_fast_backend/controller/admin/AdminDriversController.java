@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/admin/drivers")
@@ -81,8 +82,23 @@ public class AdminDriversController {
 
   @DeleteMapping("/{driverId}")
   public ResponseEntity<Void> delete(@PathVariable Long driverId) {
-    if (!driverRepository.existsById(driverId)) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    if (!driverRepository.existsById(driverId)) {
+      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+    
+    // Delete KYC record first to avoid foreign key constraint violation
+    Optional<Driver> driverOpt = driverRepository.findById(driverId);
+    if (driverOpt.isPresent()) {
+      Driver driver = driverOpt.get();
+      Optional<DriverKyc> kycOpt = driverKycRepository.findByDriver(driver);
+      if (kycOpt.isPresent()) {
+        driverKycRepository.delete(kycOpt.get());
+        log.info("Deleted KYC record for driver id={}", driverId);
+      }
+    }
+    
     driverRepository.deleteById(driverId);
+    log.info("Deleted driver id={}", driverId);
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
 

@@ -38,22 +38,36 @@ public class FirebaseConfig {
   public void init() {
     try {
       if (!FirebaseApp.getApps().isEmpty()) {
+        log.info("Firebase already initialized");
         return;
       }
 
       GoogleCredentials credentials = null;
       if (credentialsB64 != null && !credentialsB64.isBlank()) {
+        log.info("Initializing Firebase with base64 credentials");
         byte[] decoded = java.util.Base64.getDecoder().decode(credentialsB64);
         try (InputStream is = new ByteArrayInputStream(decoded)) {
           credentials = GoogleCredentials.fromStream(is);
         }
       } else if (credentialsPath != null && !credentialsPath.isBlank()) {
+        log.info("Initializing Firebase with credentials file: {}", credentialsPath);
         try (InputStream is = new FileInputStream(credentialsPath)) {
           credentials = GoogleCredentials.fromStream(is);
         }
       } else {
-        // Use Application Default Credentials if available
-        credentials = GoogleCredentials.getApplicationDefault();
+        log.warn("No Firebase credentials provided (credentials-b64 or credentials-path). Attempting Application Default Credentials...");
+        try {
+          // Use Application Default Credentials if available
+          credentials = GoogleCredentials.getApplicationDefault();
+          log.info("Using Application Default Credentials for Firebase");
+        } catch (Exception adcException) {
+          log.error("Firebase initialization FAILED: No credentials provided and Application Default Credentials not available. " +
+              "Please set FIREBASE_CREDENTIALS_B64 environment variable with base64-encoded service account JSON. " +
+              "Error: {}", adcException.getMessage());
+          // Don't throw exception here - allow app to start but Firebase features will fail
+          // This allows the app to start even if Firebase is not configured (for development)
+          return;
+        }
       }
 
       FirebaseOptions.Builder builder = FirebaseOptions.builder().setCredentials(credentials);
@@ -66,9 +80,11 @@ public class FirebaseConfig {
 
       FirebaseOptions options = builder.build();
       FirebaseApp.initializeApp(options);
-      log.info("Firebase initialized. projectId={} bucket={}", projectId, storageBucket);
+      log.info("Firebase initialized successfully. projectId={} bucket={}", projectId, storageBucket);
     } catch (Exception e) {
-      log.warn("Firebase initialization skipped: {}", e.getMessage());
+      log.error("Firebase initialization FAILED: {}. Firebase Storage features will not work. " +
+          "Please configure FIREBASE_CREDENTIALS_B64 environment variable.", e.getMessage(), e);
+      // Don't throw - allow app to start but Firebase features will fail gracefully
     }
   }
 }
